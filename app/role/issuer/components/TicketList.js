@@ -1,0 +1,125 @@
+"use client";
+import { auth, db } from "@/firebase/config";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  getDoc,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import React from "react";
+import { useEffect } from "react";
+import { useState } from "react";
+import { format } from "date-fns";
+import { FaTrash } from "react-icons/fa";
+
+export default function TicketList() {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTickets = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No authenticated user");
+        return;
+      }
+
+      const userInfoSnap = await getDoc(doc(db, "users", user.uid));
+      const userDepartment = userInfoSnap.data().department;
+
+      const ticketsRef = collection(db, "tickets", userDepartment, "all");
+      const q = query(
+        ticketsRef,
+        where("issuerId", "==", user.uid),
+        orderBy("createdAt", "desc")
+      );
+
+      const snapshot = await getDocs(q);
+
+      const userTickets = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setTickets(userTickets);
+    } catch (e) {
+      console.error("Error fetching tickets: ", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  if (loading)
+    return <p className="text-gray-500 mt-4">Loading your tickets...</p>;
+
+  if (tickets.length === 0) {
+    return <p className="text-gray-400 mt-4">No tickets submitted yet.</p>;
+  }
+
+  const handleDelete = async (ticket) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this ticket?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "tickets", ticket.department, "all", ticket.id));
+      setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
+    } catch (e) {
+      console.error("Failed to delete ticket: ", e.message);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-4">
+      {tickets.map((ticket) => (
+        <div
+          key={ticket.id}
+          className="p-4 rounded-lg border border-red-500 shadow-lg text-gray-900"
+        >
+          <div className="flex flex-row justify-between items-center mb-2">
+            <div>
+              <h3 className="text-lg font-bold">{ticket.title}</h3>
+              <p className="text-sm text-gray-500">Dept: {ticket.department}</p>
+              <p className="text-sm text-gray-500">
+                Location: {ticket.location}
+              </p>
+              <p className="text-sm text-gray-500">
+                Priority: {ticket.priority}
+              </p>
+              <p className="text-sm text-gray-700 mt-1 font-semibold">
+                Submitted on:{" "}
+                {ticket.createdAt?.toDate
+                  ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
+                  : "N/A"}
+              </p>
+            </div>
+            <div className="flex flex-col items-center justify-center gap-5">
+              <span
+                className={`text-sm font-medium px-2 py-1 mb-1 text-white rounded-2xl ${
+                  ticket.status === "open" ? "bg-red-600" : "bg-gray-500"
+                }`}
+              >
+                {ticket.status}
+              </span>
+              <button
+                onClick={() => handleDelete(ticket)}
+                className="text-xs text-gray-700 hover:text-gray-600 text-center hover:underline cursor-pointer"
+              >
+                <FaTrash size={25} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

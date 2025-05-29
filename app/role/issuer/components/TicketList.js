@@ -21,37 +21,40 @@ export default function TicketList() {
   const [loading, setLoading] = useState(true);
 
   const fetchTickets = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        console.error("No authenticated user");
-        return;
-      }
-
-      const userInfoSnap = await getDoc(doc(db, "users", user.uid));
-      const userDepartment = userInfoSnap.data().department;
-
-      const ticketsRef = collection(db, "tickets", userDepartment, "all");
-      const q = query(
-        ticketsRef,
-        where("issuerId", "==", user.uid),
-        orderBy("createdAt", "desc")
-      );
-
-      const snapshot = await getDocs(q);
-
-      const userTickets = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setTickets(userTickets);
-    } catch (e) {
-      console.error("Error fetching tickets: ", e.message);
-    } finally {
-      setLoading(false);
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("No authenticated user");
+      return;
     }
-  };
+
+    const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"]; // Add more if needed
+    const allTickets = [];
+
+    for (const dept of departments) {
+      const ticketsRef = collection(db, "tickets", dept, "all");
+      const snapshot = await getDocs(ticketsRef);
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.issuerId === user.uid) {
+          allTickets.push({
+            id: doc.id,
+            ...data,
+            department: dept, // Add department for delete function and display
+          });
+        }
+      });
+    }
+
+    allTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds); // Descending order by createdAt
+    setTickets(allTickets);
+  } catch (e) {
+    console.error("Error fetching tickets: ", e.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchTickets();

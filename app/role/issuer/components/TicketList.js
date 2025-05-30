@@ -104,6 +104,8 @@ export default function TicketList() {
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
+              {ticket.CloseTimeStamp?.toDate&&
+              <p className="text-sm text-green-700 font-semibold">Resolved on:{" "} {format(ticket.CloseTimeStamp.toDate(), "dd MMM yyyy, hh:mm a")}</p>}
             </div>
             <div className="flex flex-col items-center justify-center gap-5">
               <span

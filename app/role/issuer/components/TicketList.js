@@ -9,6 +9,7 @@ import {
   orderBy,
   query,
   where,
+  updateDoc,
 } from "firebase/firestore";
 import React from "react";
 import { useEffect } from "react";
@@ -81,6 +82,29 @@ export default function TicketList() {
     }
   };
 
+  const handleReopen = async (ticket) => {
+      const confirm = window.confirm(
+        "Are you sure you want to Re-Open this ticket?"
+      );
+      if (!confirm) return;
+  
+      try {
+        const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
+  
+        await updateDoc(ticketRef, {
+          status: "open",
+        });
+  
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.id === ticket.id ? { ...t, status: "open" } : ticket
+          )
+        );
+      } catch (e) {
+        console.error(e.message);
+      }
+    };
+
   return (
     <div className="mt-4 space-y-4">
       {tickets.map((ticket) => (
@@ -115,6 +139,14 @@ export default function TicketList() {
               >
                 {ticket.status}
               </span>
+              {ticket.status==='closed'&&(
+                <button
+                  onClick={() => handleReopen(ticket)}
+                  className="text-md font-semibold p-2 rounded-2xl bg-black cursor-pointer hover:bg-neutral-800 text-white"
+                >
+                  Re-Open
+                </button>
+              )}
               <button
                 onClick={() => handleDelete(ticket)}
                 className="text-xs text-gray-700 hover:text-gray-600 text-center hover:underline cursor-pointer"

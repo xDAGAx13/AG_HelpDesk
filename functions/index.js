@@ -79,7 +79,7 @@ export const sendTicketCreationEmail = onDocumentCreated(
         ${subCategory ? `<p><strong>Sub Category:</strong> ${subCategory}</p>` : ""}
         <p><strong>Description:</strong> ${description}</p>
         <p><strong>Raised By:</strong> ${raisedBy}</p>
-        <p>Visit AG HelpDesk to view or take action.</p>
+        <p>Visit <a href="https://main.d2ypwtfukrfewq.amplifyapp.com/">AG HelpDesk</a> to view or take action.</p>
         <p>Not your department? Write a mail to ${issuerEmail} for reformation.</p>
       `,
     };

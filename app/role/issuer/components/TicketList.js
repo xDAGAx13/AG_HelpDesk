@@ -22,40 +22,39 @@ export default function TicketList() {
   const [loading, setLoading] = useState(true);
 
   const fetchTickets = async () => {
-  try {
-    const user = auth.currentUser;
-    if (!user) {
-      console.error("No authenticated user");
-      return;
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No authenticated user");
+        return;
+      }
+
+      const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"]; // Add more if needed
+      const allTickets = [];
+
+      for (const dept of departments) {
+        const ticketsRef = collection(db, "tickets", dept, "all");
+        const snapshot = await getDocs(ticketsRef);
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.issuerId === user.uid) {
+            allTickets.push({
+              id: doc.id,
+              ...data,
+              department: dept, // Add department for delete function and display
+            });
+          }
+        });
+      }
+
+      allTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds); // Descending order by createdAt
+      setTickets(allTickets);
+    } catch (e) {
+      console.error("Error fetching tickets: ", e.message);
+    } finally {
+      setLoading(false);
     }
-
-    const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"]; // Add more if needed
-    const allTickets = [];
-
-    for (const dept of departments) {
-      const ticketsRef = collection(db, "tickets", dept, "all");
-      const snapshot = await getDocs(ticketsRef);
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        if (data.issuerId === user.uid) {
-          allTickets.push({
-            id: doc.id,
-            ...data,
-            department: dept, // Add department for delete function and display
-          });
-        }
-      });
-    }
-
-    allTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds); // Descending order by createdAt
-    setTickets(allTickets);
-  } catch (e) {
-    console.error("Error fetching tickets: ", e.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchTickets();
@@ -83,27 +82,25 @@ export default function TicketList() {
   };
 
   const handleReopen = async (ticket) => {
-      const confirm = window.confirm(
-        "Are you sure you want to Re-Open this ticket?"
+    const confirm = window.confirm(
+      "Are you sure you want to Re-Open this ticket?"
+    );
+    if (!confirm) return;
+
+    try {
+      const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
+
+      await updateDoc(ticketRef, {
+        status: "open",
+      });
+
+      setTickets((prev) =>
+        prev.map((t) => (t.id === ticket.id ? { ...t, status: "open" } : t))
       );
-      if (!confirm) return;
-  
-      try {
-        const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
-  
-        await updateDoc(ticketRef, {
-          status: "open",
-        });
-  
-        setTickets((prev) =>
-          prev.map((t) =>
-            t.id === ticket.id ? { ...t, status: "open" } : ticket
-          )
-        );
-      } catch (e) {
-        console.error(e.message);
-      }
-    };
+    } catch (e) {
+      console.error(e.message);
+    }
+  };
 
   return (
     <div className="mt-4 space-y-4">
@@ -115,6 +112,9 @@ export default function TicketList() {
           <div className="flex flex-row justify-between items-center mb-2">
             <div>
               <h3 className="text-lg font-bold">{ticket.title}</h3>
+              <p className="text-sm text-gray-500">
+                Raised By: {ticket.raisedBy}
+              </p>
               <p className="text-sm text-gray-500">Dept: {ticket.department}</p>
               <p className="text-sm text-gray-500">
                 Location: {ticket.location}
@@ -128,8 +128,15 @@ export default function TicketList() {
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
-              {ticket.CloseTimeStamp?.toDate&&
-              <p className="text-sm text-green-700 font-semibold">Resolved on:{" "} {format(ticket.CloseTimeStamp.toDate(), "dd MMM yyyy, hh:mm a")}</p>}
+              {ticket.CloseTimeStamp?.toDate && (
+                <p className="text-sm text-green-700 font-semibold">
+                  Resolved on:{" "}
+                  {format(
+                    ticket.CloseTimeStamp.toDate(),
+                    "dd MMM yyyy, hh:mm a"
+                  )}
+                </p>
+              )}
             </div>
             <div className="flex flex-col items-center justify-center gap-5">
               <span
@@ -139,7 +146,7 @@ export default function TicketList() {
               >
                 {ticket.status}
               </span>
-              {ticket.status==='closed'&&(
+              {ticket.status === "closed" && (
                 <button
                   onClick={() => handleReopen(ticket)}
                   className="text-md font-semibold p-2 rounded-2xl bg-black cursor-pointer hover:bg-neutral-800 text-white"

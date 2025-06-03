@@ -10,17 +10,19 @@ import {
   serverTimestamp,
   updateDoc,
   where,
-  deleteDoc
+  deleteDoc,
 } from "firebase/firestore";
 import React from "react";
 import { useEffect } from "react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 export default function TicketListSpecific() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -56,7 +58,7 @@ export default function TicketListSpecific() {
       "Are you sure you want to delete this ticket?"
     );
     if (!confirmDelete) return;
-  
+
     try {
       await deleteDoc(doc(db, "tickets", ticket.department, "all", ticket.id));
       setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
@@ -84,12 +86,14 @@ export default function TicketListSpecific() {
         prev.map((t) =>
           t.id === ticket.id
             ? { ...t, status: "closed", resolutionComment: comment || "" }
-            : ticket
+            : t
         )
       );
     } catch (e) {
       console.error("Error updating ticket Status: ", e.message);
     }
+
+    router.push("../role/handler");
   };
 
   const handleReopen = async (ticket) => {
@@ -106,13 +110,12 @@ export default function TicketListSpecific() {
       });
 
       setTickets((prev) =>
-        prev.map((t) =>
-          t.id === ticket.id ? { ...t, status: "open" } : ticket
-        )
+        prev.map((t) => (t.id === ticket.id ? { ...t, status: "open" } : t))
       );
     } catch (e) {
       console.error(e.message);
     }
+    router.push("../role/handler");
   };
 
   if (loading)
@@ -132,7 +135,12 @@ export default function TicketListSpecific() {
           <div className="flex flex-row justify-between items-center mb-2">
             <div className="flex flex-col">
               <h3 className="text-lg font-bold">{ticket.title}</h3>
-
+              <p className="text-sm font-bold text-gray-500">
+                Raised By: {ticket.raisedBy}
+              </p>
+              <p className="text-sm text-gray-500">
+                Issuer By: {ticket.issuerEmail}
+              </p>
               <p className="text-sm text-gray-500">Dept: {ticket.department}</p>
               <p className="text-sm text-gray-500">
                 Location: {ticket.location}

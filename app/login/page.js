@@ -97,7 +97,7 @@ export default function LoginPage() {
                 <span>Sign-In</span>
               )}
             </button>
-
+            <div className="flex flex-col gap-3">
             <p className="mt-6 text-sm text-center text-gray-600">
               New to the System?{' '}
               <a
@@ -107,6 +107,8 @@ export default function LoginPage() {
                  Sign-Up
               </a>
             </p>
+            <p className=" text-sm text-center text-red-600 hover:underline"><a href="/forgot-password">Forgot Password?</a></p>
+            </div>
           </form>
         </div>
       </div>

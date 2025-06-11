@@ -26,7 +26,7 @@ const createTransporter = (email, password) =>
 const departmentEmails = {
   IT: ["nandita@agpolypacks.com"],
   HR: ["hr@agpolypacks.com"],
-  Accounts: ["ayushi.shah@agpolypacks.com"],
+  Accounts: ["aayushi.shah@agpolypacks.com"],
   Admin: ["nandita@agpolypacks.com"],
   Hiring: ["hiring@agpolypacks.com"],
 };

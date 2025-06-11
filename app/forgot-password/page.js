@@ -10,6 +10,10 @@ export default function ForgotPassword() {
   const router = useRouter();
 
   const handleResetPassword = async (e)=>{
+    if(!email.includes('gmail')){
+      alert('Only Gmails are valid at this moment')
+      return;
+    }
     e.preventDefault();
     try{
       await sendPasswordResetEmail(auth, email);

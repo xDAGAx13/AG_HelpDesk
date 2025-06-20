@@ -11,14 +11,17 @@ import { Finlandica } from "next/font/google";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useState } from "react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/firebase/config";
+import { ImCross } from "react-icons/im";
 
-const departments = ["IT", "HR", "Accounts", "Admin", 'Hiring'];
+const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"];
 const priorities = ["Low", "Medium", "High"];
 const ITcategories = ["Software", "Hardware", "New Equipment", "SAP"];
 
-const HR = ['Attendance & Payslip', 'Other']
-const Admin = ['General Maintenance', 'Other']
-const Hiring = ['Follow-up', 'Other']
+const HR = ["Attendance & Payslip", "Other"];
+const Admin = ["General Maintenance", "Other"];
+const Hiring = ["Follow-up", "Other"];
 
 export default function TicketForm() {
   const [title, setTitle] = useState("");
@@ -31,9 +34,8 @@ export default function TicketForm() {
   const [successMsg, setSuccessMsg] = useState("");
   const [location, setLocation] = useState("");
   const [subCategory, setSubCategory] = useState("");
+  const [image, setImage] = useState(null);
   const router = useRouter();
-
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,6 +43,12 @@ export default function TicketForm() {
     if (!title || !description || !department) {
       alert("Please fill all required fields.");
       return;
+    }
+    let imageUrl = "";
+    if (image) {
+      const storageRef = ref(storage, `tickets/${image.name}`);
+      const uploadResult = await uploadBytes(storageRef, image);
+      imageUrl = await getDownloadURL(uploadResult.ref);
     }
 
     setLoading(true);
@@ -51,7 +59,7 @@ export default function TicketForm() {
       const userinfoSnap = await getDoc(doc(db, "users", user.uid));
       const name = userinfoSnap.data().name;
 
-      await addDoc(collection(db, "tickets", department, 'all'), {
+      await addDoc(collection(db, "tickets", department, "all"), {
         title,
         description,
         department,
@@ -63,6 +71,7 @@ export default function TicketForm() {
         raisedBy: name,
         raisedByUid: user.uid,
         location,
+        imageUrl,
         subCategory,
       });
 
@@ -138,7 +147,10 @@ export default function TicketForm() {
         </select>
       </div>
 
-      {(department === "IT" || department === "Admin" || department==='HR' || department==='Hiring') && (
+      {(department === "IT" ||
+        department === "Admin" ||
+        department === "HR" ||
+        department === "Hiring") && (
         <div>
           <label className="block font-semibold mb-1">Sub-Category</label>
           <select
@@ -147,7 +159,14 @@ export default function TicketForm() {
             onChange={(e) => setSubCategory(e.target.value)}
           >
             <option value="">Select Sub-Category</option>
-            {(department === "IT" ? ITcategories : department==='HR'?HR:department==='Admin'?Admin:Hiring).map((cat) => (
+            {(department === "IT"
+              ? ITcategories
+              : department === "HR"
+                ? HR
+                : department === "Admin"
+                  ? Admin
+                  : Hiring
+            ).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
@@ -170,11 +189,47 @@ export default function TicketForm() {
           ))}
         </select>
       </div>
+      <div>
+        <label className="block font-semibold mb-1">Add an Image</label>
+        <div className="flex items-center gap-4">
+          <label className="bg-red-500 px-4 py-2 text-md shadow-md text-white rounded-xl cursor-pointer hover:bg-red-600">
+            Choose File
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
+              className="hidden"
+            />
+          </label>
+          {image && (
+            <span className="text-sm text-gray-700 truncate max-w-xs">
+              {image.name.length > 25
+                ? image.name.slice(0, 25) + "..."
+                : image.name}
+            </span>
+          )}
+        </div>
+      </div>
+      {image && (
+        <div className="flex gap-3 flex-row">
+          <img
+            src={URL.createObjectURL(image)}
+            alt="Preview"
+            className="h-32"
+          />
+          <button
+            onClick={() => setImage("")}
+            className="cursor-pointer hover:text-gray-700"
+          >
+            <ImCross />
+          </button>
+        </div>
+      )}
 
       <button
         type="submit"
         disabled={loading}
-        className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-gray-200 font-semibold disabled:opacity-50 cursor-pointer"
+        className=" bg-red-500 shadow-xl border-amber-900 border-3 hover:bg-red-600 px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
       >
         {loading ? "Submitting..." : "Submit Ticket"}
       </button>

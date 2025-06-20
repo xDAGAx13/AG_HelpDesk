@@ -24,10 +24,10 @@ const createTransporter = (email, password) =>
 
 // Email mappings
 const departmentEmails = {
-  IT: ["nandita@agpolypacks.com"],
+  IT: ["manoj.agarwal@agpolypacks.com"],
   HR: ["hr@agpolypacks.com"],
   Accounts: ["aayushi.shah@agpolypacks.com"],
-  Admin: ["nandita@agpolypacks.com"],
+  Admin: ["ravindertyagi83@gmail.com"],
   Hiring: ["hiring@agpolypacks.com"],
 };
 

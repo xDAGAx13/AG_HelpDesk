@@ -18,10 +18,12 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import DescriptionPopup from "@/components/DescriptionPopup";
 
 export default function TicketListSpecific() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [descriptionPopup, setDescriptionPopup] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -154,6 +156,12 @@ export default function TicketListSpecific() {
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
+              {ticket.imageUrl &&(
+                <a href={ticket.imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2 font-semibold text-sm text-gray-700 underline hover:text-black cursor-pointer">View Image</a>
+              )}
               {ticket.CloseTimeStamp && (
                 <p className="text-sm text-green-700 mt-1 font-semibold ">
                   Resolved on:{" "}
@@ -172,6 +180,11 @@ export default function TicketListSpecific() {
               )}
             </div>
             <div className="flex flex-col gap-3 items-end">
+              <button onClick={()=>setDescriptionPopup(ticket)} className="text-md font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl">View Description</button>
+              {descriptionPopup&&(
+              <DescriptionPopup
+              descriptionPopup={descriptionPopup}
+              setDescriptionPopup={setDescriptionPopup}/>)}
               {ticket.status === "open" ? (
                 <button
                   onClick={() => handleResolve(ticket)}

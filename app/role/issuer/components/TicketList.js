@@ -16,10 +16,12 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
+import DescriptionPopup from "@/components/DescriptionPopup";
 
 export default function TicketList() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [descriptionPopup, setDescriptionPopup] = useState(null);
 
   const fetchTickets = async () => {
     try {
@@ -128,6 +130,12 @@ export default function TicketList() {
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
+              {ticket.imageUrl &&(
+                <a href={ticket.imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2 text-sm font-semibold  text-gray-700 underline hover:text-black cursor-pointer">View Image</a>
+              )}
               {ticket.CloseTimeStamp?.toDate && (
                 <p className="text-sm text-green-700 font-semibold">
                   Resolved on:{" "}
@@ -138,9 +146,14 @@ export default function TicketList() {
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-center justify-center gap-5">
+            <div className="flex flex-col items-center justify-center gap-5 ">
+              <button onClick={()=>setDescriptionPopup(ticket)} className="text-md font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl">View Description</button>
+                            {descriptionPopup&&(
+                            <DescriptionPopup
+                            descriptionPopup={descriptionPopup}
+                            setDescriptionPopup={setDescriptionPopup}/>)}
               <span
-                className={`text-sm font-medium px-2 py-1 mb-1 text-white rounded-2xl ${
+                className={`text-sm px-2 py-1 mb-1 text-white rounded-2xl font-semibold ${
                   ticket.status === "open" ? "bg-red-600" : "bg-gray-500"
                 }`}
               >
@@ -155,11 +168,11 @@ export default function TicketList() {
                 </button>
               )}
               <button
-                onClick={() => handleDelete(ticket)}
-                className="text-xs text-gray-700 hover:text-gray-600 text-center hover:underline cursor-pointer"
-              >
-                <FaTrash size={25} />
-              </button>
+                              onClick={() => handleDelete(ticket)}
+                              className="text-xs text-white hover:text-gray-400 bg-black p-2 rounded-xl text-center hover:underline cursor-pointer"
+                            >
+                              <FaTrash size={25} />
+                            </button>
             </div>
           </div>
         </div>

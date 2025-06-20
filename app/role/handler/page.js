@@ -1,7 +1,7 @@
 "use client";
 import { auth, db } from "@/firebase/config";
 import { signOut } from "firebase/auth";
-import { getDoc, doc, collection, getDocs } from "firebase/firestore";
+import { getDoc, doc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import TicketListSpecific from "./components/TicketListSpecific";
@@ -66,16 +66,21 @@ const departments = ["IT", "HR", "Accounts", "Sales"];
   }, []);
 
 
-    const downloadCSV = (tickets) =>{
-      const headers = ["Ticket ID", 'Department', 'Title', "Status", "Created At", "User Email"];
+    const downloadCSV = async (tickets) =>{
+      const confirmCleanup = window.confirm(
+        "This will eliminate all resolved older than 7 days from the dashboard. Do you wish to continue?")
+
+      if(!confirmCleanup) return;
+
+      const headers = ['Department', 'Title', "Status", "Created At", "User Email", "Raised By"];
       const rows = tickets.map(ticket=>
       [
-        ticket.id,
         `${ticket.department}`,
         ticket.title,
         ticket.status,
         new Date(ticket.createdAt?.seconds * 1000).toISOString(),
-        ticket.userEmail
+        ticket.userEmail,
+        ticket.raisedBy
       ]
       );
   
@@ -88,6 +93,31 @@ const departments = ["IT", "HR", "Accounts", "Sales"];
       link.download = 'tickets.csv';
       link.click();
       URL.revokeObjectURL(url);
+      
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime()-7*24*60*60*1000)
+
+      const ticketsToDelete = tickets.filter((ticket)=>{
+        if(ticket.status!=="closed") return false;
+        const closedTime = ticket.CloseTimeStamp?.toDate?.()||new Date(0)
+        return closedTime<sevenDaysAgo;
+      })
+
+      for(const ticket of ticketsToDelete){
+        try{
+          await deleteDoc(doc(db, "tickets", ticket.department, "all", ticket.id));
+        }catch(e){
+          alert(`Failed to delete ticket ${ticket.title}: `, e.message)
+        }
+      }
+
+      const filteredTickets = tickets.filter(
+        (t)=>!ticketsToDelete.some((del)=>del.id===t.id)
+      );
+
+      setTickets(filteredTickets)
+
+      
     }
 
   const handleSignOut = async () => {

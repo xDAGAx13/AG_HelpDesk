@@ -111,6 +111,8 @@ export default function LoginPage() {
             </div>
           </form>
         </div>
+            <p className="py-10 text-center text-gray-700 text-md font-semibold">Made by Rohan Daga</p>
+
       </div>
     </div>
   );

@@ -98,6 +98,38 @@ export default function TicketListSpecific() {
     router.push("../role/handler");
   };
 
+  const handleHold = async (ticket) => {
+    const confirm = window.confirm(
+      "Are you sure you want to put this ticket on Hold?"
+    );
+    if (!confirm) return;
+
+    const comment = window.prompt("Add any Comments (optional):", "");
+
+    try {
+      const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
+      await updateDoc(ticketRef, {
+        status: "Hold",
+        resolutionComment: comment || "",
+        CloseTimeStamp: serverTimestamp(),
+      });
+
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === ticket.id
+            ? { ...t, status: "Hold", resolutionComment: comment || "" }
+            : t
+        )
+      );
+    } catch (e) {
+      console.error("Error updating ticket Status: ", e.message);
+    }
+
+    router.push("../role/handler");
+  };
+
+
+
   const handleReopen = async (ticket) => {
     const confirm = window.confirm(
       "Are you sure you want to Re-Open this ticket?"
@@ -160,7 +192,7 @@ export default function TicketListSpecific() {
                 <a href={ticket.imageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-2 font-semibold text-sm text-gray-700 underline hover:text-black cursor-pointer">View Image</a>
+                className="inline-block mt-2 font-semibold text-sm text-red-600 underline hover:text-black cursor-pointer">View Image</a>
               )}
               {ticket.CloseTimeStamp && (
                 <p className="text-sm text-green-700 mt-1 font-semibold ">
@@ -180,37 +212,47 @@ export default function TicketListSpecific() {
               )}
             </div>
             <div className="flex flex-col gap-3 items-end">
-              <button onClick={()=>setDescriptionPopup(ticket)} className="text-md font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl">View Description</button>
+              <button onClick={()=>setDescriptionPopup(ticket)} className="text-md shadow-lg font-semibold p-2 px-4  bg-red-500 border-1 border-black cursor-pointer hover:bg-red-600 text-white rounded-2xl">View Description</button>
               {descriptionPopup&&(
               <DescriptionPopup
               descriptionPopup={descriptionPopup}
               setDescriptionPopup={setDescriptionPopup}/>)}
               {ticket.status === "open" ? (
+                <div className="flex flex-row gap-2">
                 <button
                   onClick={() => handleResolve(ticket)}
-                  className="text-md font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl"
+                  className="text-md shadow-lg font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl"
                 >
                   Resolve
                 </button>
+                <button
+                  onClick={() => handleHold(ticket)}
+                  className="text-md border-1 shadow-md border-black font-semibold p-2 px-3 rounded-2xl bg-gray-600 cursor-pointer hover:bg-neutral-700 text-white"
+                >
+                  Hold
+                </button>
+                </div>
+
               ) : (
+                
                 <button
                   onClick={() => handleReopen(ticket)}
-                  className="text-md font-semibold p-2 rounded-2xl bg-black cursor-pointer hover:bg-neutral-800 text-white"
+                  className="text-md shadow-lg font-semibold p-2 rounded-2xl bg-black cursor-pointer hover:bg-neutral-800 text-white"
                 >
                   Re-Open
                 </button>
               )}
 
               <span
-                className={`text-md font-semibold p-2  text-white rounded-2xl ${
-                  ticket.status === "open" ? "bg-red-600" : "bg-gray-400"
+                className={`text-md shadow-lg font-semibold p-2 border-1 border-black  text-white rounded-2xl ${
+                  ticket.status === "open" ? "bg-red-600" : ticket.status==="closed"?"bg-gray-400":"bg-gray-700"
                 }`}
               >
                 {ticket.status}
               </span>
               <button
                 onClick={() => handleDelete(ticket)}
-                className="text-xs text-white hover:text-gray-400 bg-black p-2 rounded-xl text-center hover:underline cursor-pointer"
+                className="text-xs shadow-lg text-white hover:text-gray-400 bg-black p-2 rounded-xl text-center hover:underline cursor-pointer"
               >
                 <FaTrash size={25} />
               </button>

@@ -192,7 +192,7 @@ export default function TicketForm() {
       <div>
         <label className="block font-semibold mb-1">Add an Image</label>
         <div className="flex items-center gap-4">
-          <label className="bg-red-500 px-4 py-2 text-md shadow-md text-white rounded-xl cursor-pointer hover:bg-red-600">
+          <label className="bg-red-500 px-4 py-2 border-1 border-black text-md shadow-md text-white rounded-xl cursor-pointer hover:bg-red-600">
             Choose File
             <input
               type="file"
@@ -229,7 +229,7 @@ export default function TicketForm() {
       <button
         type="submit"
         disabled={loading}
-        className=" bg-red-500 shadow-xl border-amber-900 border-3 hover:bg-red-600 px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
+        className=" bg-red-500 shadow-xl border-black border-3 hover:bg-red-600 px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
       >
         {loading ? "Submitting..." : "Submit Ticket"}
       </button>

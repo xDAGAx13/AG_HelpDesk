@@ -109,7 +109,7 @@ export default function TicketListSpecific() {
     try {
       const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
       await updateDoc(ticketRef, {
-        status: "Hold",
+        status: "On Hold",
         resolutionComment: comment || "",
         CloseTimeStamp: serverTimestamp(),
       });
@@ -117,7 +117,7 @@ export default function TicketListSpecific() {
       setTickets((prev) =>
         prev.map((t) =>
           t.id === ticket.id
-            ? { ...t, status: "Hold", resolutionComment: comment || "" }
+            ? { ...t, status: "On Hold", resolutionComment: comment || "" }
             : t
         )
       );

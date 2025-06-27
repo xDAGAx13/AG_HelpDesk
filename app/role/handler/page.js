@@ -19,7 +19,7 @@ export default function Page() {
 
 const departments = ["IT", "HR", "Accounts", "Sales"];
 
-  useEffect(() => {
+  useEffect(() => {    
     const fetchUserinfo = async () => {
       try {
         const user = auth.currentUser;

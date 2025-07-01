@@ -27,18 +27,21 @@ export default function TicketListSpecific() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchTickets = async () => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        console.error("No Auth User");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          console.error("No Auth User");
-          return;
-        }
-        const userinfoSnap = getDoc(doc(db, "users", user.uid));
-        const userDepartment = (await userinfoSnap).data().department;
+        const userinfoSnap = await getDoc(doc(db, "users", user.uid));
+        const userDepartment = userinfoSnap.data()?.department;
+
         const ticketsRef = collection(db, "tickets", userDepartment, "all");
         const q = query(ticketsRef, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
+
         const userTickets = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -50,9 +53,9 @@ export default function TicketListSpecific() {
       } finally {
         setLoading(false);
       }
-    };
+    });
 
-    fetchTickets();
+    return () => unsubscribe();
   }, []);
 
   const handleDelete = async (ticket) => {
@@ -128,8 +131,6 @@ export default function TicketListSpecific() {
     router.push("../role/handler");
   };
 
-
-
   const handleReopen = async (ticket) => {
     const confirm = window.confirm(
       "Are you sure you want to Re-Open this ticket?"
@@ -188,11 +189,15 @@ export default function TicketListSpecific() {
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
-              {ticket.imageUrl &&(
-                <a href={ticket.imageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-2 font-semibold text-sm text-red-600 underline hover:text-black cursor-pointer">View Image</a>
+              {ticket.imageUrl && (
+                <a
+                  href={ticket.imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-2 font-semibold text-sm text-red-600 underline hover:text-black cursor-pointer"
+                >
+                  View Image
+                </a>
               )}
               {ticket.CloseTimeStamp && (
                 <p className="text-sm text-green-700 mt-1 font-semibold ">
@@ -212,29 +217,34 @@ export default function TicketListSpecific() {
               )}
             </div>
             <div className="flex flex-col gap-3 items-end">
-              <button onClick={()=>setDescriptionPopup(ticket)} className="text-md shadow-lg font-semibold p-2 px-4  bg-red-500 border-1 border-black cursor-pointer hover:bg-red-600 text-white rounded-2xl">View Description</button>
-              {descriptionPopup&&(
-              <DescriptionPopup
-              descriptionPopup={descriptionPopup}
-              setDescriptionPopup={setDescriptionPopup}/>)}
+              <button
+                onClick={() => setDescriptionPopup(ticket)}
+                className="text-md shadow-lg font-semibold p-2 px-4  bg-red-500 border-1 border-black cursor-pointer hover:bg-red-600 text-white rounded-2xl"
+              >
+                View Description
+              </button>
+              {descriptionPopup && (
+                <DescriptionPopup
+                  descriptionPopup={descriptionPopup}
+                  setDescriptionPopup={setDescriptionPopup}
+                />
+              )}
               {ticket.status === "open" ? (
                 <div className="flex flex-row gap-2">
-                <button
-                  onClick={() => handleResolve(ticket)}
-                  className="text-md shadow-lg font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl"
-                >
-                  Resolve
-                </button>
-                <button
-                  onClick={() => handleHold(ticket)}
-                  className="text-md border-1 shadow-md border-black font-semibold p-2 px-3 rounded-2xl bg-gray-600 cursor-pointer hover:bg-neutral-700 text-white"
-                >
-                  Hold
-                </button>
+                  <button
+                    onClick={() => handleResolve(ticket)}
+                    className="text-md shadow-lg font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl"
+                  >
+                    Resolve
+                  </button>
+                  <button
+                    onClick={() => handleHold(ticket)}
+                    className="text-md border-1 shadow-md border-black font-semibold p-2 px-3 rounded-2xl bg-gray-600 cursor-pointer hover:bg-neutral-700 text-white"
+                  >
+                    Hold
+                  </button>
                 </div>
-
               ) : (
-                
                 <button
                   onClick={() => handleReopen(ticket)}
                   className="text-md shadow-lg font-semibold p-2 rounded-2xl bg-black cursor-pointer hover:bg-neutral-800 text-white"
@@ -245,7 +255,11 @@ export default function TicketListSpecific() {
 
               <span
                 className={`text-md shadow-lg font-semibold p-2 border-1 border-black  text-white rounded-2xl ${
-                  ticket.status === "open" ? "bg-red-600" : ticket.status==="closed"?"bg-gray-400":"bg-gray-700"
+                  ticket.status === "open"
+                    ? "bg-red-600"
+                    : ticket.status === "closed"
+                      ? "bg-gray-400"
+                      : "bg-gray-700"
                 }`}
               >
                 {ticket.status}

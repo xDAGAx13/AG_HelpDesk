@@ -15,7 +15,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/firebase/config";
 import { ImCross } from "react-icons/im";
 
-const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"];
+const departments = ["IT", "HR", "Accounts", "Admin", "Hiring", "Civil"];
 const priorities = ["Low", "Medium", "High"];
 const ITcategories = ["Software", "Hardware", "New Equipment", "SAP"];
 

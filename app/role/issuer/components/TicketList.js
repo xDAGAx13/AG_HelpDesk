@@ -17,21 +17,24 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
 import DescriptionPopup from "@/components/DescriptionPopup";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function TicketList() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [descriptionPopup, setDescriptionPopup] = useState(null);
 
-  const fetchTickets = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        console.error("No authenticated user");
-        return;
-      }
 
-      const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"]; // Add more if needed
+  useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      console.error("No authenticated user");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"];
       const allTickets = [];
 
       for (const dept of departments) {
@@ -43,24 +46,23 @@ export default function TicketList() {
             allTickets.push({
               id: doc.id,
               ...data,
-              department: dept, // Add department for delete function and display
+              department: dept,
             });
           }
         });
       }
 
-      allTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds); // Descending order by createdAt
+      allTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
       setTickets(allTickets);
     } catch (e) {
       console.error("Error fetching tickets: ", e.message);
     } finally {
       setLoading(false);
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  return () => unsubscribe();
+}, []);
 
   if (loading)
     return <p className="text-gray-500 mt-4">Loading your tickets...</p>;

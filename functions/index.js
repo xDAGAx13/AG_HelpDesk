@@ -27,8 +27,9 @@ const departmentEmails = {
   IT: ["manoj.agarwal@agpolypacks.com"],
   HR: ["hr@agpolypacks.com"],
   Accounts: ["aayushi.shah@agpolypacks.com"],
-  Admin: ["deepak.chauhan@agpolypacks.Comment"],
+  Admin: ["vipul.kumar@agpolypacks.com"],
   Hiring: ["hiring@agpolypacks.com"],
+  Civil: ["neeraj.singhal@agpolypacks.com"],
 };
 
 const subCategoryEmails = {
@@ -43,8 +44,8 @@ const subCategoryEmails = {
     Other: ["supriya.bhushan@agpolypacks.com"],
   },
   Admin: {
-    "General Maintenance": ["ravindertyagi83@gmail.com"],
-    Other: ["ravindertyagi83@gmail.com"],
+    "General Maintenance": ["deepak.chauhan@agpolypacks.com"],
+    Other: ["deepak.chauhan@agpolypacks.com"],
   },
   Hiring: {
     "Follow-up": ["hiring@agpolypacks.com"],

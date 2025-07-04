@@ -183,12 +183,56 @@ export default function TicketListSpecific() {
               <p className="text-sm text-gray-500">
                 Priority: {ticket.priority}
               </p>
+
+              {ticket.description && (
+                <p className="text-sm text-gray-500 font-semibold">
+                  Description:{" "}
+                  {ticket.description.length > 60 && !ticket.expanded ? (
+                    <>
+                      {ticket.description.slice(0, 60)}...
+                      <button
+                        onClick={() =>
+                          setTickets((prev) =>
+                            prev.map((t) =>
+                              t.id === ticket.id ? { ...t, expanded: true } : t
+                            )
+                          )
+                        }
+                        className="text-red-500 font-semibold hover:underline ml-1 cursor-pointer"
+                      >
+                        more
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {ticket.description}
+                      {ticket.description.length > 60 && (
+                        <button
+                          onClick={() =>
+                            setTickets((prev) =>
+                              prev.map((t) =>
+                                t.id === ticket.id
+                                  ? { ...t, expanded: false }
+                                  : t
+                              )
+                            )
+                          }
+                          className="text-red-500 font-semibold hover:underline ml-1 cursor-pointer"
+                        >
+                          less
+                        </button>
+                      )}
+                    </>
+                  )}
+                </p>
+              )}
               <p className="text-sm text-gray-700 mt-1 font-semibold">
                 Submitted on:{" "}
                 {ticket.createdAt?.toDate
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
+
               {ticket.imageUrl && (
                 <a
                   href={ticket.imageUrl}
@@ -201,7 +245,7 @@ export default function TicketListSpecific() {
               )}
               {ticket.CloseTimeStamp && (
                 <p className="text-sm text-green-700 mt-1 font-semibold ">
-                  Resolved on:{" "}
+                  {ticket.status==='closed'?'Resolved:':'Held'} on:{" "}
                   {ticket.CloseTimeStamp?.toDate
                     ? format(
                         ticket.CloseTimeStamp.toDate(),
@@ -216,21 +260,10 @@ export default function TicketListSpecific() {
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-3 items-end">
-              <button
-                onClick={() => setDescriptionPopup(ticket)}
-                className="text-md shadow-lg font-semibold p-2 px-4  bg-red-500 border-1 border-black cursor-pointer hover:bg-red-600 text-white rounded-2xl"
-              >
-                View Description
-              </button>
-              {descriptionPopup && (
-                <DescriptionPopup
-                  descriptionPopup={descriptionPopup}
-                  setDescriptionPopup={setDescriptionPopup}
-                />
-              )}
+            <div className="flex flex-col gap-3 items-end pl-10">
+              
               {ticket.status === "open" ? (
-                <div className="flex flex-row gap-2">
+                <div className="flex flex-row gap-2 ">
                   <button
                     onClick={() => handleResolve(ticket)}
                     className="text-md shadow-lg font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl"

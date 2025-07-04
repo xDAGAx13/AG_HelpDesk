@@ -126,6 +126,48 @@ export default function TicketList() {
               <p className="text-sm text-gray-500">
                 Priority: {ticket.priority}
               </p>
+              {ticket.description && (
+                <p className="text-sm text-gray-500 font-semibold">
+                  Description:{" "}
+                  {ticket.description.length > 60 && !ticket.expanded ? (
+                    <>
+                      {ticket.description.slice(0, 60)}...
+                      <button
+                        onClick={() =>
+                          setTickets((prev) =>
+                            prev.map((t) =>
+                              t.id === ticket.id ? { ...t, expanded: true } : t
+                            )
+                          )
+                        }
+                        className="text-red-500 font-semibold hover:underline ml-1 cursor-pointer"
+                      >
+                        more
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {ticket.description}
+                      {ticket.description.length > 60 && (
+                        <button
+                          onClick={() =>
+                            setTickets((prev) =>
+                              prev.map((t) =>
+                                t.id === ticket.id
+                                  ? { ...t, expanded: false }
+                                  : t
+                              )
+                            )
+                          }
+                          className="text-red-500 font-semibold hover:underline ml-1 cursor-pointer"
+                        >
+                          less
+                        </button>
+                      )}
+                    </>
+                  )}
+                </p>
+              )}
               <p className="text-sm text-gray-700 mt-1 font-semibold">
                 Submitted on:{" "}
                 {ticket.createdAt?.toDate
@@ -140,7 +182,7 @@ export default function TicketList() {
               )}
               {ticket.CloseTimeStamp?.toDate && (
                 <p className="text-sm text-green-700 font-semibold">
-                  Resolved on:{" "}
+                  {ticket.status==='closed'?'Resolved:':'Held'} on:{" "}
                   {format(
                     ticket.CloseTimeStamp.toDate(),
                     "dd MMM yyyy, hh:mm a"
@@ -148,12 +190,8 @@ export default function TicketList() {
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-center justify-center gap-5 ">
-              <button onClick={()=>setDescriptionPopup(ticket)} className="text-md font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl">View Description</button>
-                            {descriptionPopup&&(
-                            <DescriptionPopup
-                            descriptionPopup={descriptionPopup}
-                            setDescriptionPopup={setDescriptionPopup}/>)}
+            <div className="flex flex-col items-center justify-center gap-5 pl-10">
+              
               <span
                 className={`text-sm px-2 py-1 mb-1 text-white rounded-2xl font-semibold ${
                   ticket.status === "open" ? "bg-red-600" : "bg-gray-500"

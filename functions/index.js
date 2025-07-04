@@ -34,9 +34,9 @@ const departmentEmails = {
 
 const subCategoryEmails = {
   IT: {
-    Software: ["it@agpolypacks.com"],
-    Hardware: ["it@agpolypacks.com"],
-    "New Equipment": ["it@agpolypacks.com"],
+    Software: ["it.helpdesk@agpolypacks.com"],
+    Hardware: ["it.helpdesk@agpolypacks.com"],
+    "New Equipment": ["it.helpdesk@agpolypacks.com"],
     SAP: ["priyank.jain@agpolypacks.com"],
   },
   HR: {

@@ -18,7 +18,6 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import DescriptionPopup from "@/components/DescriptionPopup";
 
 export default function TicketListSpecific() {
   const [tickets, setTickets] = useState([]);

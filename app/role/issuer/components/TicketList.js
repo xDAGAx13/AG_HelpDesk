@@ -16,7 +16,6 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
-import DescriptionPopup from "@/components/DescriptionPopup";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function TicketList() {

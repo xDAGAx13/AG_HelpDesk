@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 export default function TicketListSpecific() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [descriptionPopup, setDescriptionPopup] = useState(null);
   const router = useRouter();
 
   useEffect(() => {

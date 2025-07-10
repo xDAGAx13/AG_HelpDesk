@@ -21,7 +21,6 @@ import { onAuthStateChanged } from "firebase/auth";
 export default function TicketList() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [descriptionPopup, setDescriptionPopup] = useState(null);
 
 
   useEffect(() => {

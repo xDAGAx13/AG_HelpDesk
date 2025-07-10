@@ -15,13 +15,13 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/firebase/config";
 import { ImCross } from "react-icons/im";
 
-const departments = ["IT", "HR", "Accounts", "Admin", "Hiring", "Civil"];
+const departments = ["IT", "HR", "Accounts", "Admin", "Civil"];
 const priorities = ["Low", "Medium", "High"];
 const ITcategories = ["Software", "Hardware", "New Equipment", "SAP"];
 
-const HR = ["Attendance & Payslip", "Other"];
+const HR = ["Attendance & Payslip","Hiring", "Other"];
 const Admin = ["General Maintenance", "Other"];
-const Hiring = ["Follow-up", "Other"];
+const Accounts = ["Finance", "Other"]
 
 export default function TicketForm() {
   const [title, setTitle] = useState("");

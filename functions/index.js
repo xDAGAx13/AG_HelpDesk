@@ -25,10 +25,9 @@ const createTransporter = (email, password) =>
 // Email mappings
 const departmentEmails = {
   IT: ["manoj.agarwal@agpolypacks.com"],
-  HR: ["hr@agpolypacks.com"],
-  Accounts: ["aayushi.shah@agpolypacks.com"],
+  HR: ["supriya.bhushan@agpolypacks.com"],
+  Accounts: ["accounts@agpolypacks.com"],
   Admin: ["vipul.kumar@agpolypacks.com"],
-  Hiring: ["hiring@agpolypacks.com"],
   Civil: ["neeraj.singhal@agpolypacks.com"],
 };
 
@@ -42,14 +41,15 @@ const subCategoryEmails = {
   HR: {
     "Attendance & Payslip": ["hr@agpolypacks.com"],
     Other: ["supriya.bhushan@agpolypacks.com"],
+  Hiring: ["hiring@agpolypacks.com"],
   },
   Admin: {
     "General Maintenance": ["deepak.chauhan@agpolypacks.com"],
     Other: ["deepak.chauhan@agpolypacks.com"],
   },
-  Hiring: {
-    "Follow-up": ["hiring@agpolypacks.com"],
-    Other: ["hiring@agpolypacks.com"],
+  Accounts:{
+    "Finance":['aayushi.shah@agpolypacks.com'],
+    Other:['aayushi.shah@agpolypacks.com'],
   },
 };
 

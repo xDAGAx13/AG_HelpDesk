@@ -29,6 +29,7 @@ const departmentEmails = {
   Accounts: ["accounts@agpolypacks.com"],
   Admin: ["vipul.kumar@agpolypacks.com"],
   Civil: ["neeraj.singhal@agpolypacks.com"],
+  "Plant & Machine Maintenance": [""],
 };
 
 const subCategoryEmails = {

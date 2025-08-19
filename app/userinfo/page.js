@@ -109,6 +109,7 @@ useEffect(() => {
           <option value="Admin">Admin</option> 
           <option value="Hiring">Hiring</option> 
           <option value="Sales">Sales</option> 
+          <option value="Plant & Machine Maintenance">Plant & Machine Maintenance</option> 
         </select>
 
         

@@ -15,13 +15,20 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/firebase/config";
 import { ImCross } from "react-icons/im";
 
-const departments = ["IT", "HR", "Accounts", "Admin", "Civil"];
+const departments = [
+  "IT",
+  "HR",
+  "Accounts",
+  "Admin",
+  "Civil",
+  "Plant & Machine Maintenance",
+];
 const priorities = ["Low", "Medium", "High"];
 const ITcategories = ["Software", "Hardware", "New Equipment", "SAP"];
 
-const HR = ["Attendance & Payslip","Hiring", "Other"];
+const HR = ["Attendance & Payslip", "Hiring", "Other"];
 const Admin = ["General Maintenance", "Other"];
-const Accounts = ["Finance", "Other"]
+const Accounts = ["Finance", "Other"];
 
 export default function TicketForm() {
   const [title, setTitle] = useState("");
@@ -150,7 +157,8 @@ export default function TicketForm() {
       {(department === "IT" ||
         department === "Admin" ||
         department === "HR" ||
-        department === "Hiring") && (
+        department === "Hiring" ||
+        department === "Accounts") && (
         <div>
           <label className="block font-semibold mb-1">Sub-Category</label>
           <select
@@ -165,7 +173,7 @@ export default function TicketForm() {
                 ? HR
                 : department === "Admin"
                   ? Admin
-                  : Hiring
+                  : Accounts
             ).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}

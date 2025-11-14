@@ -15,6 +15,7 @@ import TicketForm from "./components/TicketForm";
 import { FaSignOutAlt } from "react-icons/fa";
 import { IoPerson } from "react-icons/io5";
 import { FaFileDownload } from "react-icons/fa";
+import DownloadUsersCSV from "@/utils/downloadUsers";
 
 export default function Page() {
   const router = useRouter();
@@ -191,6 +192,7 @@ export default function Page() {
           Handle {tickDepartment} Tickets
         </h1>
         <TicketListSpecific />
+        {/* <DownloadUsersCSV/> */}
       </div>
     </div>
   );

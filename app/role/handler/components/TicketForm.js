@@ -29,6 +29,7 @@ const ITcategories = ["Software", "Hardware", "New Equipment", "SAP"];
 const HR = ["Attendance & Payslip", "Hiring", "Other"];
 const Admin = ["General Maintenance", "Other"];
 const Accounts = ["Finance", "Other"];
+const PlantandMachineMaintenance = ["Masuri","Bhovapur", "Other"];
 
 export default function TicketForm() {
   const [title, setTitle] = useState("");
@@ -158,7 +159,8 @@ export default function TicketForm() {
         department === "Admin" ||
         department === "HR" ||
         department === "Hiring" ||
-        department === "Accounts") && (
+        department === "Accounts"||
+        department === "Plant & Machine Maintenance") && (
         <div>
           <label className="block font-semibold mb-1">Sub-Category</label>
           <select
@@ -173,6 +175,8 @@ export default function TicketForm() {
                 ? HR
                 : department === "Admin"
                   ? Admin
+                  : department==="Plant & Machine Maintenance"
+                  ? PlantandMachineMaintenance
                   : Accounts
             ).map((cat) => (
               <option key={cat} value={cat}>

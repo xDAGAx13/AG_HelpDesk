@@ -52,6 +52,11 @@ const subCategoryEmails = {
     "Finance":['aayushi.shah@agpolypacks.com'],
     Other:['aayushi.shah@agpolypacks.com'],
   },
+  "Plant & Machine Maintenance":{
+    "Masuri":["maintenance.masuri@agpolypacks.com"],
+    "Bhovapur":["maintenanceag@agpolypacks.com"],
+    Other: ["abhinav.kumar@agpolypacks.com"]
+  }
 };
 
 // Ticket creation trigger

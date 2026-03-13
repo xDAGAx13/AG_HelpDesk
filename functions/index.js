@@ -1,4 +1,7 @@
-import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import {
+  onDocumentCreated,
+  onDocumentUpdated,
+} from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -42,21 +45,21 @@ const subCategoryEmails = {
   HR: {
     "Attendance & Payslip": ["hr@agpolypacks.com"],
     Other: ["supriya.bhushan@agpolypacks.com"],
-  Hiring: ["hiring@agpolypacks.com"],
+    Hiring: ["hiring@agpolypacks.com"],
   },
   Admin: {
-    "General Maintenance": ["deepak.chauhan@agpolypacks.com"],
-    Other: ["deepak.chauhan@agpolypacks.com"],
+    "General Maintenance": ["admin.agppl@agpolypacks.com"],
+    Other: ["admin.agppl@agpolypacks.com"],
   },
-  Accounts:{
-    "Finance":['aayushi.shah@agpolypacks.com'],
-    Other:['aayushi.shah@agpolypacks.com'],
+  Accounts: {
+    Finance: ["aayushi.shah@agpolypacks.com"],
+    Other: ["aayushi.shah@agpolypacks.com"],
   },
-  "Plant & Machine Maintenance":{
-    "Masuri":["maintenance.masuri@agpolypacks.com"],
-    "Bhovapur":["maintenanceag@agpolypacks.com"],
-    Other: ["abhinav.kumar@agpolypacks.com"]
-  }
+  "Plant & Machine Maintenance": {
+    Masuri: ["maintenance.masuri@agpolypacks.com"],
+    Bhovapur: ["maintenanceag@agpolypacks.com"],
+    Other: ["abhinav.kumar@agpolypacks.com"],
+  },
 };
 
 // Ticket creation trigger
@@ -68,12 +71,22 @@ export const sendTicketCreationEmail = onDocumentCreated(
   },
   async (event) => {
     const ticket = event.data.data();
-    const { department, subCategory, title, description, raisedBy, issuerEmail } = ticket;
+    const {
+      department,
+      subCategory,
+      title,
+      description,
+      raisedBy,
+      issuerEmail,
+    } = ticket;
 
     const ccEmails = departmentEmails[department] || [];
     const subEmails = subCategoryEmails[department]?.[subCategory] || ccEmails;
 
-    const transporter = createTransporter(GMAIL_EMAIL.value(), GMAIL_PASSWORD.value());
+    const transporter = createTransporter(
+      GMAIL_EMAIL.value(),
+      GMAIL_PASSWORD.value(),
+    );
 
     const mailOptions = {
       from: `"AG HelpDesk" <${GMAIL_EMAIL.value()}>`,
@@ -97,7 +110,7 @@ export const sendTicketCreationEmail = onDocumentCreated(
     } catch (error) {
       console.error("Error sending creation email:", error);
     }
-  }
+  },
 );
 
 // Ticket resolution trigger
@@ -126,7 +139,10 @@ export const sendResolutionEmail = onDocumentUpdated(
       }
 
       const userEmail = userSnap.data().email;
-      const transporter = createTransporter(GMAIL_EMAIL.value(), GMAIL_PASSWORD.value());
+      const transporter = createTransporter(
+        GMAIL_EMAIL.value(),
+        GMAIL_PASSWORD.value(),
+      );
 
       const mailOptions = {
         from: `"AG HelpDesk" <${GMAIL_EMAIL.value()}>`,
@@ -151,5 +167,5 @@ export const sendResolutionEmail = onDocumentUpdated(
         console.error("Error sending resolution email:", err);
       }
     }
-  }
+  },
 );

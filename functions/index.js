@@ -2,8 +2,10 @@ import {
   onDocumentCreated,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 
@@ -61,6 +63,65 @@ const subCategoryEmails = {
     Other: ["abhinav.kumar@agpolypacks.com"],
   },
 };
+
+// Password reset function
+export const sendPasswordResetLink = onCall(
+  {
+    secrets: [GMAIL_EMAIL, GMAIL_PASSWORD],
+    region: "us-central1",
+  },
+  async (request) => {
+    const { email } = request.data;
+
+    if (!email) {
+      throw new HttpsError("invalid-argument", "Email is required.");
+    }
+
+    let resetLink;
+    try {
+      resetLink = await getAuth().generatePasswordResetLink(email);
+    } catch (err) {
+      if (err.code === "auth/user-not-found") {
+        // Don't reveal whether the email exists
+        return { success: true };
+      }
+      throw new HttpsError("internal", "Failed to generate reset link.");
+    }
+
+    const transporter = createTransporter(
+      GMAIL_EMAIL.value(),
+      GMAIL_PASSWORD.value(),
+    );
+
+    const mailOptions = {
+      from: `"AG HelpDesk" <${GMAIL_EMAIL.value()}>`,
+      to: email,
+      subject: "Reset Your AG HelpDesk Password",
+      html: `
+        <p>Hello,</p>
+        <p>We received a request to reset the password for your AG HelpDesk account.</p>
+        <p>Click the button below to reset your password. This link expires in 1 hour.</p>
+        <p style="margin: 24px 0;">
+          <a href="${resetLink}"
+            style="background-color:#dc2626;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
+            Reset Password
+          </a>
+        </p>
+        <p>If you did not request a password reset, you can safely ignore this email.</p>
+        <p>— AG HelpDesk</p>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (err) {
+      console.error("Error sending password reset email:", err);
+      throw new HttpsError("internal", "Failed to send reset email.");
+    }
+
+    return { success: true };
+  },
+);
 
 // Ticket creation trigger
 export const sendTicketCreationEmail = onDocumentCreated(

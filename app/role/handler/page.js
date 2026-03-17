@@ -11,11 +11,11 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import TicketListSpecific from "./components/TicketListSpecific";
-import TicketForm from "./components/TicketForm";
-import { FaSignOutAlt } from "react-icons/fa";
-import { IoPerson } from "react-icons/io5";
+import TicketForm from "../issuer/components/TicketForm";
 import { FaFileDownload } from "react-icons/fa";
-import DownloadUsersCSV from "@/utils/downloadUsers";
+import Navbar from "@/app/components/Navbar";
+
+const CSV_DEPARTMENTS = ["IT", "HR", "Accounts", "Sales"];
 
 export default function Page() {
   const router = useRouter();
@@ -24,23 +24,17 @@ export default function Page() {
   const [tickDepartment, setTickDepartment] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const departments = ["IT", "HR", "Accounts", "Sales"];
-
   useEffect(() => {
     const fetchTicketinfo = async () => {
       let allTickets = [];
       try {
-        for (const dept of departments) {
+        for (const dept of CSV_DEPARTMENTS) {
           const deptref = collection(db, "tickets", dept, "all");
           const snapshot = await getDocs(deptref);
 
           snapshot.forEach((doc) => {
             const data = doc.data();
-            allTickets.push({
-              id: doc.id,
-              ...data,
-              department: dept,
-            });
+            allTickets.push({ id: doc.id, ...data, department: dept });
           });
         }
 
@@ -56,19 +50,17 @@ export default function Page() {
           const userinfosnap = await getDoc(doc(db, "users", user.uid));
           if (userinfosnap.exists()) {
             const username = userinfosnap.data().name || "";
-            const firstname = username.split(" ")[0];
-            const department = userinfosnap.data().department;
-            setTickDepartment(department);
-            setName(firstname);
+            setName(username.split(" ")[0]);
+            setTickDepartment(userinfosnap.data().department);
           }
         } catch (e) {
           alert("Cannot Fetch Username");
           console.error(e.message);
         }
 
-        fetchTicketinfo(); // move this inside so it's called only when user is valid
+        fetchTicketinfo();
       } else {
-        router.push("/login"); // optional: redirect if user is not logged in
+        router.push("/login");
       }
     });
 
@@ -128,11 +120,9 @@ export default function Page() {
       }
     }
 
-    const filteredTickets = tickets.filter(
-      (t) => !ticketsToDelete.some((del) => del.id === t.id)
+    setTickets((prev) =>
+      prev.filter((t) => !ticketsToDelete.some((del) => del.id === t.id))
     );
-
-    setTickets(filteredTickets);
   };
 
   const handleSignOut = async () => {
@@ -149,37 +139,14 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-white pb-10">
-      <nav className="fixed top-0 left-0 right-0 flex justify-between px-4 py-2 mx-auto z-50 bg-gray-300 shadow-md backdrop-blur-md bg-opacity-100 items-center">
-        <button className="text-red-500 font-semibold text-xl hover:text-red-400 cursor-pointer">
-          AG HelpDesk
+      <Navbar onSignOut={handleSignOut} loading={loading}>
+        <button
+          onClick={() => downloadCSV(tickets)}
+          className="cursor-pointer bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 hover:text-gray-200"
+        >
+          <FaFileDownload className="text-2xl" />
         </button>
-        <div className="flex flex-row gap-4 items-center">
-          <button
-            onClick={handleSignOut}
-            className="cursor-pointer bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 hover:text-gray-200"
-          >
-            {loading ? (
-              <div className="flex justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : (
-              <FaSignOutAlt className="text-2xl" />
-            )}
-          </button>
-          <button
-            onClick={() => router.push("/userinfo")}
-            className="cursor-pointer bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 hover:text-gray-200"
-          >
-            <IoPerson className="text-2xl" />
-          </button>
-          <button
-            onClick={() => downloadCSV(tickets)}
-            className="cursor-pointer bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 hover:text-gray-200"
-          >
-            <FaFileDownload className="text-2xl" />
-          </button>
-        </div>
-      </nav>
+      </Navbar>
       <div className="flex-col p-4 max-w-4xl mx-auto gap-2 pt-20">
         <h1 className="text-3xl font-bold text-gray-500 text-shadow-md text-center">
           Hi, {name}
@@ -192,7 +159,6 @@ export default function Page() {
           Handle {tickDepartment} Tickets
         </h1>
         <TicketListSpecific />
-        {/* <DownloadUsersCSV/> */}
       </div>
     </div>
   );

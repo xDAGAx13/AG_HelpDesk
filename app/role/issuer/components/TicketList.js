@@ -17,6 +17,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
 import { onAuthStateChanged } from "firebase/auth";
+import { DEPARTMENTS } from "@/utils/ticketConstants";
 
 export default function TicketList() {
   const [tickets, setTickets] = useState([]);
@@ -32,10 +33,9 @@ export default function TicketList() {
     }
 
     try {
-      const departments = ["IT", "HR", "Accounts", "Admin", "Hiring"];
       const allTickets = [];
 
-      for (const dept of departments) {
+      for (const dept of DEPARTMENTS) {
         const ticketsRef = collection(db, "tickets", dept, "all");
         const snapshot = await getDocs(ticketsRef);
         snapshot.docs.forEach((doc) => {

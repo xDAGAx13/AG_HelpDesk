@@ -7,43 +7,26 @@ import {
   getDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { Finlandica } from "next/font/google";
 import { useRouter } from "next/navigation";
-import React from "react";
 import { useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/firebase/config";
 import { ImCross } from "react-icons/im";
-
-const departments = [
-  "IT",
-  "HR",
-  "Accounts",
-  "Admin",
-  "Civil",
-  "Plant & Machine Maintenance",
-];
-const priorities = ["Low", "Medium", "High"];
-const ITcategories = ["Software", "Hardware", "New Equipment", "SAP"];
-
-const HR = ["Attendance & Payslip", "Hiring", "Other"];
-const Admin = ["General Maintenance", "Other"];
-const Accounts = ["Finance", "Other"];
-const PlantandMachineMaintenance = ["Masuri","Bhovapur", "Other"];
+import { DEPARTMENTS, PRIORITIES, SUB_CATEGORIES } from "@/utils/ticketConstants";
 
 export default function TicketForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [department, setDepartment] = useState("");
   const [priority, setPriority] = useState("Medium");
-  const [raisedBy, setRaisedBy] = useState("");
-  const [raisedByUid, setRaisedByUid] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [location, setLocation] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [image, setImage] = useState(null);
   const router = useRouter();
+
+  const subCategoryOptions = SUB_CATEGORIES[department];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,6 +35,7 @@ export default function TicketForm() {
       alert("Please fill all required fields.");
       return;
     }
+
     let imageUrl = "";
     if (image) {
       const storageRef = ref(storage, `tickets/${image.name}`);
@@ -88,8 +72,6 @@ export default function TicketForm() {
       setDescription("");
       setDepartment("");
       setPriority("Medium");
-      setRaisedBy(name);
-      setRaisedByUid(user.uid);
       setSubCategory("");
       router.push("/");
     } catch (e) {
@@ -142,12 +124,12 @@ export default function TicketForm() {
       <div>
         <label className="block font-semibold mb-1">Department</label>
         <select
-          className="shadow-lg w-full p-2 rounded border-red-400 border  focus:outline-none focus:ring-2 focus:ring-red-300"
+          className="shadow-lg w-full p-2 rounded border-red-400 border focus:outline-none focus:ring-2 focus:ring-red-300"
           value={department}
-          onChange={(e) => setDepartment(e.target.value)}
+          onChange={(e) => { setDepartment(e.target.value); setSubCategory(""); }}
         >
           <option value="">Select Department</option>
-          {departments.map((dept) => (
+          {DEPARTMENTS.map((dept) => (
             <option key={dept} value={dept}>
               {dept}
             </option>
@@ -155,12 +137,7 @@ export default function TicketForm() {
         </select>
       </div>
 
-      {(department === "IT" ||
-        department === "Admin" ||
-        department === "HR" ||
-        department === "Hiring" ||
-        department === "Accounts"||
-        department === "Plant & Machine Maintenance") && (
+      {subCategoryOptions && (
         <div>
           <label className="block font-semibold mb-1">Sub-Category</label>
           <select
@@ -169,16 +146,7 @@ export default function TicketForm() {
             onChange={(e) => setSubCategory(e.target.value)}
           >
             <option value="">Select Sub-Category</option>
-            {(department === "IT"
-              ? ITcategories
-              : department === "HR"
-                ? HR
-                : department === "Admin"
-                  ? Admin
-                  : department==="Plant & Machine Maintenance"
-                  ? PlantandMachineMaintenance
-                  : Accounts
-            ).map((cat) => (
+            {subCategoryOptions.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
@@ -190,17 +158,18 @@ export default function TicketForm() {
       <div>
         <label className="block font-semibold mb-1">Priority</label>
         <select
-          className="shadow-lg w-full p-2 rounded border-red-400 border  focus:outline-none focus:ring-2 focus:ring-red-300"
+          className="shadow-lg w-full p-2 rounded border-red-400 border focus:outline-none focus:ring-2 focus:ring-red-300"
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
         >
-          {priorities.map((p) => (
+          {PRIORITIES.map((p) => (
             <option key={p} value={p}>
               {p}
             </option>
           ))}
         </select>
       </div>
+
       <div>
         <label className="block font-semibold mb-1">Add an Image</label>
         <div className="flex items-center gap-4">
@@ -222,6 +191,7 @@ export default function TicketForm() {
           )}
         </div>
       </div>
+
       {image && (
         <div className="flex gap-3 flex-row">
           <img
@@ -241,7 +211,7 @@ export default function TicketForm() {
       <button
         type="submit"
         disabled={loading}
-        className=" bg-red-500 shadow-xl border-black border-3 hover:bg-red-600 px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
+        className="bg-red-500 shadow-xl border-black border-3 hover:bg-red-600 px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
       >
         {loading ? "Submitting..." : "Submit Ticket"}
       </button>

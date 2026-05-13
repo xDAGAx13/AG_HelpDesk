@@ -34,7 +34,7 @@ export default function ForgotPassword() {
     <div className='min-h-screen flex items-center justify-center bg-white'>
       <form onSubmit={handleResetPassword} className='w-full max-w-sm p-6 border border-red-600 rounded shadow-xl'>
         <h2 className='text-xl font-bold mb-2 text-red-600 text-center'>Forgot Password</h2>
-        <p className='text-sm text-gray-500 text-center mb-4'>Enter your email and we'll send you a reset link.</p>
+        <p className='text-sm text-gray-500 text-center mb-4'>Enter your email and we&apos;ll send you a reset link.</p>
 
         <div className='relative mb-4'>
           <IoMailOutline className='absolute top-1/2 left-3 transform -translate-y-1/2 text-red-400 text-xl' />

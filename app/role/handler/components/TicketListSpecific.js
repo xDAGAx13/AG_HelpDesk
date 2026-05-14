@@ -5,23 +5,28 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   serverTimestamp,
+  startAfter,
   updateDoc,
-  where,
   deleteDoc,
 } from "firebase/firestore";
-import React from "react";
-import { useEffect } from "react";
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
+const PAGE_SIZE = 10;
+
 export default function TicketListSpecific() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const lastDocRef = useRef(null);
+  const deptRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,16 +40,15 @@ export default function TicketListSpecific() {
       try {
         const userinfoSnap = await getDoc(doc(db, "users", user.uid));
         const userDepartment = userinfoSnap.data()?.department;
+        deptRef.current = userDepartment;
 
         const ticketsRef = collection(db, "tickets", userDepartment, "all");
-        const q = query(ticketsRef, orderBy("createdAt", "desc"));
+        const q = query(ticketsRef, orderBy("createdAt", "desc"), limit(PAGE_SIZE));
         const snapshot = await getDocs(q);
 
-        const userTickets = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
+        const userTickets = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] ?? null;
+        setHasMore(snapshot.docs.length === PAGE_SIZE);
         setTickets(userTickets);
       } catch (e) {
         console.error("Error fetching tickets: ", e.message);
@@ -55,6 +59,31 @@ export default function TicketListSpecific() {
 
     return () => unsubscribe();
   }, []);
+
+  const loadMore = async () => {
+    if (!lastDocRef.current || !deptRef.current) return;
+    setLoadingMore(true);
+
+    try {
+      const ticketsRef = collection(db, "tickets", deptRef.current, "all");
+      const q = query(
+        ticketsRef,
+        orderBy("createdAt", "desc"),
+        startAfter(lastDocRef.current),
+        limit(PAGE_SIZE)
+      );
+      const snapshot = await getDocs(q);
+
+      const more = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] ?? null;
+      setHasMore(snapshot.docs.length === PAGE_SIZE);
+      setTickets((prev) => [...prev, ...more]);
+    } catch (e) {
+      console.error("Error loading more tickets: ", e.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleDelete = async (ticket) => {
     const confirmDelete = window.confirm(
@@ -69,6 +98,7 @@ export default function TicketListSpecific() {
       console.error("Failed to delete ticket: ", e.message);
     }
   };
+
   const handleResolve = async (ticket) => {
     const confirm = window.confirm(
       "Are you sure you want to mark this ticket as resolved?"
@@ -137,10 +167,7 @@ export default function TicketListSpecific() {
 
     try {
       const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
-
-      await updateDoc(ticketRef, {
-        status: "open",
-      });
+      await updateDoc(ticketRef, { status: "open" });
 
       setTickets((prev) =>
         prev.map((t) => (t.id === ticket.id ? { ...t, status: "open" } : t))
@@ -243,7 +270,7 @@ export default function TicketListSpecific() {
               )}
               {ticket.CloseTimeStamp && (
                 <p className="text-sm text-green-700 mt-1 font-semibold ">
-                  {ticket.status==='closed'?'Resolved:':'Held'} on:{" "}
+                  {ticket.status === "closed" ? "Resolved:" : "Held"} on:{" "}
                   {ticket.CloseTimeStamp?.toDate
                     ? format(
                         ticket.CloseTimeStamp.toDate(),
@@ -259,7 +286,6 @@ export default function TicketListSpecific() {
               )}
             </div>
             <div className="flex flex-col gap-3 items-end pl-10">
-              
               {ticket.status === "open" ? (
                 <div className="flex flex-row gap-2 ">
                   <button
@@ -305,6 +331,18 @@ export default function TicketListSpecific() {
           </div>
         </div>
       ))}
+
+      {hasMore && (
+        <div className="flex justify-center pt-2 pb-4">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-2 bg-black text-white font-semibold rounded-2xl hover:bg-neutral-800 disabled:opacity-50 cursor-pointer"
+          >
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

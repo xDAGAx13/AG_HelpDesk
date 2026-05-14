@@ -5,69 +5,118 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  getDoc,
+  limit,
   orderBy,
   query,
-  where,
+  startAfter,
   updateDoc,
+  where,
 } from "firebase/firestore";
-import React from "react";
-import { useEffect } from "react";
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
 import { onAuthStateChanged } from "firebase/auth";
 import { DEPARTMENTS } from "@/utils/ticketConstants";
 
+const PAGE_SIZE = 5;
+
 export default function TicketList() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const cursorsRef = useRef({});
+  const exhaustedRef = useRef(new Set());
+  const userRef = useRef(null);
 
+  const fetchPage = async (user) => {
+    const newTickets = [];
+    const activeDepts = DEPARTMENTS.filter((d) => !exhaustedRef.current.has(d));
+
+    await Promise.all(
+      activeDepts.map(async (dept) => {
+        const ticketsRef = collection(db, "tickets", dept, "all");
+        const cursor = cursorsRef.current[dept];
+        let q;
+
+        if (cursor) {
+          q = query(
+            ticketsRef,
+            where("issuerId", "==", user.uid),
+            orderBy("createdAt", "desc"),
+            startAfter(cursor),
+            limit(PAGE_SIZE)
+          );
+        } else {
+          q = query(
+            ticketsRef,
+            where("issuerId", "==", user.uid),
+            orderBy("createdAt", "desc"),
+            limit(PAGE_SIZE)
+          );
+        }
+
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach((d) => {
+          newTickets.push({ id: d.id, ...d.data(), department: dept });
+        });
+
+        if (snapshot.docs.length < PAGE_SIZE) {
+          exhaustedRef.current.add(dept);
+        }
+        if (snapshot.docs.length > 0) {
+          cursorsRef.current[dept] = snapshot.docs[snapshot.docs.length - 1];
+        }
+      })
+    );
+
+    newTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+    setHasMore(exhaustedRef.current.size < DEPARTMENTS.length);
+    return newTickets;
+  };
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      console.error("No authenticated user");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const allTickets = [];
-
-      for (const dept of DEPARTMENTS) {
-        const ticketsRef = collection(db, "tickets", dept, "all");
-        const snapshot = await getDocs(ticketsRef);
-        snapshot.docs.forEach((doc) => {
-          const data = doc.data();
-          if (data.issuerId === user.uid) {
-            allTickets.push({
-              id: doc.id,
-              ...data,
-              department: dept,
-            });
-          }
-        });
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        console.error("No authenticated user");
+        setLoading(false);
+        return;
       }
 
-      allTickets.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
-      setTickets(allTickets);
+      userRef.current = user;
+
+      try {
+        const initial = await fetchPage(user);
+        setTickets(initial);
+      } catch (e) {
+        console.error("Error fetching tickets: ", e.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loadMore = async () => {
+    if (!userRef.current) return;
+    setLoadingMore(true);
+
+    try {
+      const more = await fetchPage(userRef.current);
+      setTickets((prev) => {
+        const existing = new Set(prev.map((t) => t.id));
+        const unique = more.filter((t) => !existing.has(t.id));
+        return [...prev, ...unique].sort(
+          (a, b) => b.createdAt?.seconds - a.createdAt?.seconds
+        );
+      });
     } catch (e) {
-      console.error("Error fetching tickets: ", e.message);
+      console.error("Error loading more: ", e.message);
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
-  });
-
-  return () => unsubscribe();
-}, []);
-
-  if (loading)
-    return <p className="text-gray-500 mt-4">Loading your tickets...</p>;
-
-  if (tickets.length === 0) {
-    return <p className="text-gray-400 mt-4">No tickets submitted yet.</p>;
-  }
+  };
 
   const handleDelete = async (ticket) => {
     const confirmDelete = window.confirm(
@@ -91,10 +140,7 @@ export default function TicketList() {
 
     try {
       const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
-
-      await updateDoc(ticketRef, {
-        status: "open",
-      });
+      await updateDoc(ticketRef, { status: "open" });
 
       setTickets((prev) =>
         prev.map((t) => (t.id === ticket.id ? { ...t, status: "open" } : t))
@@ -103,6 +149,13 @@ export default function TicketList() {
       console.error(e.message);
     }
   };
+
+  if (loading)
+    return <p className="text-gray-500 mt-4">Loading your tickets...</p>;
+
+  if (tickets.length === 0) {
+    return <p className="text-gray-400 mt-4">No tickets submitted yet.</p>;
+  }
 
   return (
     <div className="mt-4 space-y-4">
@@ -172,15 +225,19 @@ export default function TicketList() {
                   ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
                   : "N/A"}
               </p>
-              {ticket.imageUrl &&(
-                <a href={ticket.imageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-2 text-sm font-semibold  text-gray-700 underline hover:text-black cursor-pointer">View Image</a>
+              {ticket.imageUrl && (
+                <a
+                  href={ticket.imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-2 text-sm font-semibold text-gray-700 underline hover:text-black cursor-pointer"
+                >
+                  View Image
+                </a>
               )}
               {ticket.CloseTimeStamp?.toDate && (
                 <p className="text-sm text-green-700 font-semibold">
-                  {ticket.status==='closed'?'Resolved:':'Held'} on:{" "}
+                  {ticket.status === "closed" ? "Resolved:" : "Held"} on:{" "}
                   {format(
                     ticket.CloseTimeStamp.toDate(),
                     "dd MMM yyyy, hh:mm a"
@@ -189,7 +246,6 @@ export default function TicketList() {
               )}
             </div>
             <div className="flex flex-col items-center justify-center gap-5 pl-10">
-              
               <span
                 className={`text-sm px-2 py-1 mb-1 text-white rounded-2xl font-semibold ${
                   ticket.status === "open" ? "bg-red-600" : "bg-gray-500"
@@ -206,15 +262,27 @@ export default function TicketList() {
                 </button>
               )}
               <button
-                              onClick={() => handleDelete(ticket)}
-                              className="text-xs text-white hover:text-gray-400 bg-black p-2 rounded-xl text-center hover:underline cursor-pointer"
-                            >
-                              <FaTrash size={25} />
-                            </button>
+                onClick={() => handleDelete(ticket)}
+                className="text-xs text-white hover:text-gray-400 bg-black p-2 rounded-xl text-center hover:underline cursor-pointer"
+              >
+                <FaTrash size={25} />
+              </button>
             </div>
           </div>
         </div>
       ))}
+
+      {hasMore && (
+        <div className="flex justify-center pt-2 pb-4">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-2 bg-black text-white font-semibold rounded-2xl hover:bg-neutral-800 disabled:opacity-50 cursor-pointer"
+          >
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

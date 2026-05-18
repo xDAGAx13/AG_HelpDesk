@@ -25,11 +25,17 @@ export default function SignUp() {
   const handleSignup = async (e) => {
     setLoading(true);
     e.preventDefault();
-    if(password!=confPassword){
-      alert('Both Password fields should match!')
+    if (password != confPassword) {
+      alert('Both Password fields should match!');
+      setLoading(false);
       return;
     }
- 
+    if (!email.endsWith('@agpolypacks.com')) {
+      alert('Only @agpolypacks.com email addresses are allowed.');
+      setLoading(false);
+      return;
+    }
+
       try {
         const userCred = await createUserWithEmailAndPassword(
           auth,

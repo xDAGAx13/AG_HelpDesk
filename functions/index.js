@@ -3,6 +3,7 @@ import {
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { beforeUserCreated } from "firebase-functions/v2/identity";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -27,42 +28,18 @@ const createTransporter = (email, password) =>
     },
   });
 
-// Email mappings
-const departmentEmails = {
-  IT: ["manoj.agarwal@agpolypacks.com"],
-  HR: ["supriya.bhushan@agpolypacks.com"],
-  Accounts: ["accounts@agpolypacks.com"],
-  Admin: ["vipul.kumar@agpolypacks.com"],
-  Civil: ["neeraj.singhal@agpolypacks.com"],
-  "Plant & Machine Maintenance": ["abhinav.kumar@agpolypacks.com"],
-};
+// Blocking function: reject sign-ups from outside @agpolypacks.com
+export const enforceEmailDomain = beforeUserCreated((event) => {
+  const email = event.data?.email || "";
+  if (!email.endsWith("@agpolypacks.com")) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Only @agpolypacks.com email addresses are permitted."
+    );
+  }
+});
 
-const subCategoryEmails = {
-  IT: {
-    Software: ["it.helpdesk@agpolypacks.com"],
-    Hardware: ["it.helpdesk@agpolypacks.com"],
-    "New Equipment": ["it.helpdesk@agpolypacks.com"],
-    SAP: ["priyank.jain@agpolypacks.com"],
-  },
-  HR: {
-    "Attendance & Payslip": ["hr@agpolypacks.com"],
-    Other: ["supriya.bhushan@agpolypacks.com"],
-    Hiring: ["hiring@agpolypacks.com"],
-  },
-  Admin: {
-    "General Maintenance": ["admin.agppl@agpolypacks.com"],
-    Other: ["admin.agppl@agpolypacks.com"],
-  },
-  Accounts: {
-    Finance: ["aayushi.shah@agpolypacks.com"],
-    Other: ["aayushi.shah@agpolypacks.com"],
-  },
-  "Plant & Machine Maintenance": {
-    Masuri: ["maintenance.masuri@agpolypacks.com"],
-    Bhovapur: ["maintenanceag@agpolypacks.com"],
-    Other: ["abhinav.kumar@agpolypacks.com"],
-  },
-};
+import { departmentEmails, subCategoryEmails } from "./emailRoutes.js";
 
 // Password reset function
 export const sendPasswordResetLink = onCall(

@@ -14,7 +14,7 @@ import { storage } from "@/firebase/config";
 import { ImCross } from "react-icons/im";
 import { DEPARTMENTS, PRIORITIES, SUB_CATEGORIES } from "@/utils/ticketConstants";
 
-export default function TicketForm() {
+export default function TicketForm({ onSuccess }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [department, setDepartment] = useState("");
@@ -67,13 +67,19 @@ export default function TicketForm() {
         subCategory,
       });
 
-      setSuccessMsg("Ticket Submitted Successfully");
       setTitle("");
       setDescription("");
       setDepartment("");
       setPriority("Medium");
       setSubCategory("");
-      router.push("/");
+      setImage(null);
+      setSuccessMsg("Ticket Submitted Successfully");
+      setTimeout(() => setSuccessMsg(""), 3000);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/");
+      }
     } catch (e) {
       alert(e.message);
     } finally {

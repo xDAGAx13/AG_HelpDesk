@@ -1,4 +1,4 @@
-import { db } from "@/firebase/config";
+import { auth, db } from "@/firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 

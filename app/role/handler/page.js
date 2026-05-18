@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import TicketListSpecific from "./components/TicketListSpecific";
+import TicketList from "../issuer/components/TicketList";
 import TicketForm from "../issuer/components/TicketForm";
 import { FaFileDownload } from "react-icons/fa";
 import Navbar from "@/app/components/Navbar";
@@ -23,6 +24,7 @@ export default function Page() {
   const [tickets, setTickets] = useState([]);
   const [tickDepartment, setTickDepartment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [listKey, setListKey] = useState(0);
 
   useEffect(() => {
     const fetchTicketinfo = async () => {
@@ -154,11 +156,15 @@ export default function Page() {
         <h1 className="text-red-500 text-shadow-sm text-3xl font-semibold text-center mb-5">
           Raise and Handle
         </h1>
-        <TicketForm />
-        <h1 className="text-black text-shadow-md font-bold text-3xl text-center mt-5">
+        <TicketForm onSuccess={() => setListKey((k) => k + 1)} />
+        <h1 className="text-black text-shadow-md font-bold text-2xl text-center mt-8 mb-1">
+          My Raised Tickets
+        </h1>
+        <TicketList key={listKey} />
+        <h1 className="text-black text-shadow-md font-bold text-3xl text-center mt-8">
           Handle {tickDepartment} Tickets
         </h1>
-        <TicketListSpecific />
+        <TicketListSpecific key={listKey} />
       </div>
     </div>
   );

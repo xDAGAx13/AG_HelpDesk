@@ -13,6 +13,7 @@ export default function IssuerPage() {
   const auth = getAuth();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
+  const [listKey, setListKey] = useState(0);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -57,11 +58,11 @@ export default function IssuerPage() {
         <h1 className="text-3xl font-bold mb-6 text-shadow-sm text-red-500 text-center">
           Raise A Ticket
         </h1>
-        <TicketForm />
+        <TicketForm onSuccess={() => setListKey((k) => k + 1)} />
         <h2 className="text-2xl text-center font-semibold mt-10 text-shadow-md text-black">
           Your Tickets
         </h2>
-        <TicketList />
+        <TicketList key={listKey} />
       </div>
     </div>
   );

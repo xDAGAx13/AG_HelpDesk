@@ -316,10 +316,10 @@ export default function AdminPage() {
   });
 
   const stats = {
-    total: tickets.length,
-    open: tickets.filter((t) => t.status === "open").length,
-    closed: tickets.filter((t) => t.status === "closed").length,
-    onHold: tickets.filter((t) => t.status === "On Hold").length,
+    total: filtered.length,
+    open: filtered.filter((t) => t.status === "open").length,
+    closed: filtered.filter((t) => t.status === "closed").length,
+    onHold: filtered.filter((t) => t.status === "On Hold").length,
   };
 
   if (loading) {
@@ -416,7 +416,7 @@ export default function AdminPage() {
 
         {/* Current batch stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Loaded Tickets" value={stats.total} color="bg-gray-700" />
+          <StatCard label="Filtered Tickets" value={stats.total} color="bg-gray-700" />
           <StatCard label="Open" value={stats.open} color="bg-red-600" />
           <StatCard label="Closed" value={stats.closed} color="bg-gray-400" />
           <StatCard label="On Hold" value={stats.onHold} color="bg-gray-600" />

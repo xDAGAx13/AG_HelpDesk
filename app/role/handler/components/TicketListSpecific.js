@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getCountFromServer,
   limit,
   orderBy,
   query,
@@ -12,6 +13,7 @@ import {
   startAfter,
   updateDoc,
   deleteDoc,
+  where,
 } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
@@ -38,6 +40,7 @@ export default function TicketListSpecific() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedId, setExpandedId] = useState(null);
+  const [totals, setTotals] = useState({ all: 0, resolved: 0, open: 0, onHold: 0 });
   const lastDocRef = useRef(null);
   const deptRef = useRef(null);
 
@@ -55,12 +58,22 @@ export default function TicketListSpecific() {
         deptRef.current = userDepartment;
 
         const ticketsRef = collection(db, "tickets", userDepartment, "all");
-        const q = query(
-          ticketsRef,
-          orderBy("createdAt", "desc"),
-          limit(PAGE_SIZE)
-        );
-        const snapshot = await getDocs(q);
+
+        const [snapshot, ...countSnaps] = await Promise.all([
+          getDocs(query(ticketsRef, orderBy("createdAt", "desc"), limit(PAGE_SIZE))),
+          getCountFromServer(query(ticketsRef)),
+          getCountFromServer(query(ticketsRef, where("status", "==", "closed"))),
+          getCountFromServer(query(ticketsRef, where("status", "==", "open"))),
+          getCountFromServer(query(ticketsRef, where("status", "==", "On Hold"))),
+        ]);
+
+        const [allSnap, resolvedSnap, openSnap, onHoldSnap] = countSnaps;
+        setTotals({
+          all: allSnap.data().count,
+          resolved: resolvedSnap.data().count,
+          open: openSnap.data().count,
+          onHold: onHoldSnap.data().count,
+        });
 
         const userTickets = snapshot.docs.map((d) => ({
           id: d.id,
@@ -188,10 +201,10 @@ export default function TicketListSpecific() {
   });
 
   const stats = {
-    total: tickets.length,
-    open: tickets.filter((t) => t.status === "open").length,
-    closed: tickets.filter((t) => t.status === "closed").length,
-    onHold: tickets.filter((t) => t.status === "On Hold").length,
+    total: filtered.length,
+    open: filtered.filter((t) => t.status === "open").length,
+    closed: filtered.filter((t) => t.status === "closed").length,
+    onHold: filtered.filter((t) => t.status === "On Hold").length,
   };
 
   if (loading)
@@ -202,9 +215,50 @@ export default function TicketListSpecific() {
 
   return (
     <div className="mt-6 space-y-5">
-      {/* Stats */}
+      {/* All-time dept summary */}
+      <div className="rounded-xl border border-red-100 bg-red-50 px-6 py-5">
+        <p className="text-xs font-semibold uppercase text-red-400 tracking-wide mb-3">
+          All-time department summary
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <div>
+            <p className="text-3xl font-extrabold text-gray-800">{totals.all}</p>
+            <p className="text-xs text-gray-500 mt-1 font-semibold">Total Raised</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extrabold text-green-600">{totals.resolved}</p>
+            <p className="text-xs text-gray-500 mt-1 font-semibold">Resolved</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extrabold text-red-600">{totals.open}</p>
+            <p className="text-xs text-gray-500 mt-1 font-semibold">Open</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extrabold text-yellow-600">{totals.onHold}</p>
+            <p className="text-xs text-gray-500 mt-1 font-semibold">On Hold</p>
+          </div>
+        </div>
+        {totals.all > 0 && (
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Resolution rate</span>
+              <span className="font-semibold text-green-600">
+                {Math.round((totals.resolved / totals.all) * 100)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${Math.round((totals.resolved / totals.all) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Current batch stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Loaded" value={stats.total} color="bg-gray-700" />
+        <StatCard label="Filtered" value={stats.total} color="bg-gray-700" />
         <StatCard label="Open" value={stats.open} color="bg-red-600" />
         <StatCard label="Closed" value={stats.closed} color="bg-gray-400" />
         <StatCard label="On Hold" value={stats.onHold} color="bg-gray-600" />

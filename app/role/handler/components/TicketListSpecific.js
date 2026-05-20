@@ -16,18 +16,30 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { FaTrash } from "react-icons/fa";
-import { useRouter } from "next/navigation";
 
 const PAGE_SIZE = 10;
+
+function StatCard({ label, value, color }) {
+  return (
+    <div
+      className={`rounded-xl p-4 shadow-md text-white ${color} flex flex-col items-center`}
+    >
+      <span className="text-3xl font-bold">{value}</span>
+      <span className="text-sm mt-1 font-semibold">{label}</span>
+    </div>
+  );
+}
 
 export default function TicketListSpecific() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [expandedId, setExpandedId] = useState(null);
   const lastDocRef = useRef(null);
   const deptRef = useRef(null);
-  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -43,10 +55,18 @@ export default function TicketListSpecific() {
         deptRef.current = userDepartment;
 
         const ticketsRef = collection(db, "tickets", userDepartment, "all");
-        const q = query(ticketsRef, orderBy("createdAt", "desc"), limit(PAGE_SIZE));
+        const q = query(
+          ticketsRef,
+          orderBy("createdAt", "desc"),
+          limit(PAGE_SIZE)
+        );
         const snapshot = await getDocs(q);
 
-        const userTickets = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const userTickets = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          department: userDepartment,
+        }));
         lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] ?? null;
         setHasMore(snapshot.docs.length === PAGE_SIZE);
         setTickets(userTickets);
@@ -74,7 +94,11 @@ export default function TicketListSpecific() {
       );
       const snapshot = await getDocs(q);
 
-      const more = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const more = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        department: deptRef.current,
+      }));
       lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] ?? null;
       setHasMore(snapshot.docs.length === PAGE_SIZE);
       setTickets((prev) => [...prev, ...more]);
@@ -86,11 +110,7 @@ export default function TicketListSpecific() {
   };
 
   const handleDelete = async (ticket) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this ticket?"
-    );
-    if (!confirmDelete) return;
-
+    if (!window.confirm("Are you sure you want to delete this ticket?")) return;
     try {
       await deleteDoc(doc(db, "tickets", ticket.department, "all", ticket.id));
       setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
@@ -100,21 +120,14 @@ export default function TicketListSpecific() {
   };
 
   const handleResolve = async (ticket) => {
-    const confirm = window.confirm(
-      "Are you sure you want to mark this ticket as resolved?"
-    );
-    if (!confirm) return;
-
+    if (!window.confirm("Mark this ticket as resolved?")) return;
     const comment = window.prompt("Add any Comments (optional):", "");
-
     try {
-      const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
-      await updateDoc(ticketRef, {
+      await updateDoc(doc(db, "tickets", ticket.department, "all", ticket.id), {
         status: "closed",
         resolutionComment: comment || "",
         CloseTimeStamp: serverTimestamp(),
       });
-
       setTickets((prev) =>
         prev.map((t) =>
           t.id === ticket.id
@@ -123,28 +136,19 @@ export default function TicketListSpecific() {
         )
       );
     } catch (e) {
-      console.error("Error updating ticket Status: ", e.message);
+      console.error("Error resolving ticket:", e.message);
     }
-
-    router.push("../role/handler");
   };
 
   const handleHold = async (ticket) => {
-    const confirm = window.confirm(
-      "Are you sure you want to put this ticket on Hold?"
-    );
-    if (!confirm) return;
-
+    if (!window.confirm("Put this ticket on hold?")) return;
     const comment = window.prompt("Add any Comments (optional):", "");
-
     try {
-      const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
-      await updateDoc(ticketRef, {
+      await updateDoc(doc(db, "tickets", ticket.department, "all", ticket.id), {
         status: "On Hold",
         resolutionComment: comment || "",
         CloseTimeStamp: serverTimestamp(),
       });
-
       setTickets((prev) =>
         prev.map((t) =>
           t.id === ticket.id
@@ -153,184 +157,255 @@ export default function TicketListSpecific() {
         )
       );
     } catch (e) {
-      console.error("Error updating ticket Status: ", e.message);
+      console.error("Error holding ticket:", e.message);
     }
-
-    router.push("../role/handler");
   };
 
   const handleReopen = async (ticket) => {
-    const confirm = window.confirm(
-      "Are you sure you want to Re-Open this ticket?"
-    );
-    if (!confirm) return;
-
+    if (!window.confirm("Re-open this ticket?")) return;
     try {
-      const ticketRef = doc(db, "tickets", ticket.department, "all", ticket.id);
-      await updateDoc(ticketRef, { status: "open" });
-
+      await updateDoc(doc(db, "tickets", ticket.department, "all", ticket.id), {
+        status: "open",
+      });
       setTickets((prev) =>
         prev.map((t) => (t.id === ticket.id ? { ...t, status: "open" } : t))
       );
     } catch (e) {
-      console.error(e.message);
+      console.error("Error reopening ticket:", e.message);
     }
-    router.push("../role/handler");
+  };
+
+  const filtered = tickets.filter((t) => {
+    const matchesStatus =
+      statusFilter === "All" || t.status === statusFilter;
+    const term = search.toLowerCase();
+    const matchesSearch =
+      !search ||
+      t.title?.toLowerCase().includes(term) ||
+      t.raisedBy?.toLowerCase().includes(term) ||
+      t.issuerEmail?.toLowerCase().includes(term);
+    return matchesStatus && matchesSearch;
+  });
+
+  const stats = {
+    total: tickets.length,
+    open: tickets.filter((t) => t.status === "open").length,
+    closed: tickets.filter((t) => t.status === "closed").length,
+    onHold: tickets.filter((t) => t.status === "On Hold").length,
   };
 
   if (loading)
-    return <p className="text-gray-500 mt-4">Loading your tickets...</p>;
+    return <p className="text-gray-500 mt-6">Loading department tickets...</p>;
 
-  if (tickets.length === 0) {
-    return <p className="text-gray-400 mt-4">No tickets submitted yet.</p>;
-  }
+  if (tickets.length === 0)
+    return <p className="text-gray-400 mt-6">No tickets in your department yet.</p>;
 
   return (
-    <div className="mt-4 space-y-4">
-      {tickets.map((ticket) => (
-        <div
-          key={ticket.id}
-          className=" p-4 rounded-lg border-2 shadow-xl border-red-500 text-gray-900"
+    <div className="mt-6 space-y-5">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard label="Loaded" value={stats.total} color="bg-gray-700" />
+        <StatCard label="Open" value={stats.open} color="bg-red-600" />
+        <StatCard label="Closed" value={stats.closed} color="bg-gray-400" />
+        <StatCard label="On Hold" value={stats.onHold} color="bg-gray-600" />
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <input
+          type="text"
+          placeholder="Search title, name or email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 min-w-48 focus:outline-none focus:ring-2 focus:ring-red-300"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
         >
-          <div className="flex flex-row justify-between items-center mb-2">
-            <div className="flex flex-col">
-              <h3 className="text-lg font-bold">{ticket.title}</h3>
-              <p className="text-sm font-bold text-gray-500">
-                Raised By: {ticket.raisedBy}
-              </p>
-              <p className="text-sm text-gray-500">
-                Issuer By: {ticket.issuerEmail}
-              </p>
-              <p className="text-sm text-gray-500">Dept: {ticket.department}</p>
-              <p className="text-sm text-gray-500">
-                Location: {ticket.location}
-              </p>
-              <p className="text-sm text-gray-500">
-                Priority: {ticket.priority}
-              </p>
+          <option value="All">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+      </div>
 
-              {ticket.description && (
-                <p className="text-sm text-gray-500 font-semibold">
-                  Description:{" "}
-                  {ticket.description.length > 60 && !ticket.expanded ? (
-                    <>
-                      {ticket.description.slice(0, 60)}...
-                      <button
-                        onClick={() =>
-                          setTickets((prev) =>
-                            prev.map((t) =>
-                              t.id === ticket.id ? { ...t, expanded: true } : t
-                            )
-                          )
-                        }
-                        className="text-red-500 font-semibold hover:underline ml-1 cursor-pointer"
-                      >
-                        more
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {ticket.description}
-                      {ticket.description.length > 60 && (
-                        <button
-                          onClick={() =>
-                            setTickets((prev) =>
-                              prev.map((t) =>
-                                t.id === ticket.id
-                                  ? { ...t, expanded: false }
-                                  : t
-                              )
-                            )
-                          }
-                          className="text-red-500 font-semibold hover:underline ml-1 cursor-pointer"
-                        >
-                          less
-                        </button>
-                      )}
-                    </>
-                  )}
-                </p>
-              )}
-              <p className="text-sm text-gray-700 mt-1 font-semibold">
-                Submitted on:{" "}
-                {ticket.createdAt?.toDate
-                  ? format(ticket.createdAt.toDate(), "dd MMM yyyy, hh:mm a")
-                  : "N/A"}
-              </p>
-
-              {ticket.imageUrl && (
-                <a
-                  href={ticket.imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-2 font-semibold text-sm text-red-600 underline hover:text-black cursor-pointer"
-                >
-                  View Image
-                </a>
-              )}
-              {ticket.CloseTimeStamp && (
-                <p className="text-sm text-green-700 mt-1 font-semibold ">
-                  {ticket.status === "closed" ? "Resolved:" : "Held"} on:{" "}
-                  {ticket.CloseTimeStamp?.toDate
-                    ? format(
-                        ticket.CloseTimeStamp.toDate(),
-                        "dd MMM yyyy, hh:mm a"
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+            <tr>
+              <th className="px-4 py-3 text-left">Title</th>
+              <th className="px-4 py-3 text-left">Priority</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Raised By</th>
+              <th className="px-4 py-3 text-left">Email</th>
+              <th className="px-4 py-3 text-left">Submitted</th>
+              <th className="px-4 py-3 text-left">Resolved / Held</th>
+              <th className="px-4 py-3 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-10 text-gray-400">
+                  No tickets match your search.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((ticket) => (
+                <React.Fragment key={ticket.id}>
+                  {/* Main row */}
+                  <tr
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() =>
+                      setExpandedId(
+                        expandedId === ticket.id ? null : ticket.id
                       )
-                    : "N/A"}
-                </p>
-              )}
-              {ticket.resolutionComment && (
-                <p className="text-sm text-green-600 font-semibold">
-                  Comment: {ticket.resolutionComment}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-3 items-end pl-10">
-              {ticket.status === "open" ? (
-                <div className="flex flex-row gap-2 ">
-                  <button
-                    onClick={() => handleResolve(ticket)}
-                    className="text-md shadow-lg font-semibold p-2  bg-black cursor-pointer hover:bg-neutral-800 text-white rounded-2xl"
+                    }
                   >
-                    Resolve
-                  </button>
-                  <button
-                    onClick={() => handleHold(ticket)}
-                    className="text-md border-1 shadow-md border-black font-semibold p-2 px-3 rounded-2xl bg-gray-600 cursor-pointer hover:bg-neutral-700 text-white"
-                  >
-                    Hold
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleReopen(ticket)}
-                  className="text-md shadow-lg font-semibold p-2 rounded-2xl bg-black cursor-pointer hover:bg-neutral-800 text-white"
-                >
-                  Re-Open
-                </button>
-              )}
+                    <td className="px-4 py-3 font-medium text-gray-800 max-w-44 truncate">
+                      {ticket.title}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          ticket.priority === "High"
+                            ? "bg-red-100 text-red-700"
+                            : ticket.priority === "Medium"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {ticket.priority || "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          ticket.status === "open"
+                            ? "bg-red-100 text-red-700"
+                            : ticket.status === "closed"
+                              ? "bg-gray-200 text-gray-600"
+                              : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      {ticket.raisedBy}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {ticket.issuerEmail}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {ticket.createdAt?.toDate
+                        ? format(
+                            ticket.createdAt.toDate(),
+                            "dd MMM yy, hh:mm a"
+                          )
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {ticket.CloseTimeStamp?.toDate
+                        ? format(
+                            ticket.CloseTimeStamp.toDate(),
+                            "dd MMM yy, hh:mm a"
+                          )
+                        : "—"}
+                    </td>
+                    {/* Actions — stop row-click propagation */}
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {ticket.status === "open" ? (
+                          <>
+                            <button
+                              onClick={() => handleResolve(ticket)}
+                              className="px-2 py-1 text-xs font-semibold bg-black text-white rounded-lg hover:bg-neutral-800 cursor-pointer"
+                            >
+                              Resolve
+                            </button>
+                            <button
+                              onClick={() => handleHold(ticket)}
+                              className="px-2 py-1 text-xs font-semibold bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer"
+                            >
+                              Hold
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleReopen(ticket)}
+                            className="px-2 py-1 text-xs font-semibold bg-black text-white rounded-lg hover:bg-neutral-800 cursor-pointer"
+                          >
+                            Re-Open
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(ticket)}
+                          className="p-1.5 bg-black text-white rounded-lg hover:bg-neutral-800 cursor-pointer"
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
 
-              <span
-                className={`text-md shadow-lg font-semibold p-2 border-1 border-black  text-white rounded-2xl ${
-                  ticket.status === "open"
-                    ? "bg-red-600"
-                    : ticket.status === "closed"
-                      ? "bg-gray-400"
-                      : "bg-gray-700"
-                }`}
-              >
-                {ticket.status}
-              </span>
-              <button
-                onClick={() => handleDelete(ticket)}
-                className="text-xs shadow-lg text-white hover:text-gray-400 bg-black p-2 rounded-xl text-center hover:underline cursor-pointer"
-              >
-                <FaTrash size={25} />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
+                  {/* Expanded detail row */}
+                  {expandedId === ticket.id && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={8} className="px-6 py-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                          {ticket.subCategory && (
+                            <p>
+                              <span className="font-semibold">Sub-category:</span>{" "}
+                              {ticket.subCategory}
+                            </p>
+                          )}
+                          {ticket.location && (
+                            <p>
+                              <span className="font-semibold">Location:</span>{" "}
+                              {ticket.location}
+                            </p>
+                          )}
+                          {ticket.description && (
+                            <p className="sm:col-span-2">
+                              <span className="font-semibold">Description:</span>{" "}
+                              {ticket.description}
+                            </p>
+                          )}
+                          {ticket.resolutionComment && (
+                            <p className="sm:col-span-2 text-green-700">
+                              <span className="font-semibold">Comment:</span>{" "}
+                              {ticket.resolutionComment}
+                            </p>
+                          )}
+                          {ticket.imageUrl && (
+                            <p>
+                              <a
+                                href={ticket.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-red-600 underline font-semibold hover:text-black"
+                              >
+                                View Attached Image
+                              </a>
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {hasMore && (
         <div className="flex justify-center pt-2 pb-4">

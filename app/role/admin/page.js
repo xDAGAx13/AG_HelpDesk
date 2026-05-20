@@ -45,8 +45,9 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState("All");
 
   const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [userSearch, setUserSearch] = useState("");
-  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState("");
 
   const cursorsRef = useRef({});
   const exhaustedRef = useRef(new Set());
@@ -107,10 +108,19 @@ export default function AdminPage() {
           return;
         }
         setName(snap.data().name?.split(" ")[0] || "");
-        const initial = await fetchPage(true);
+
+        const [initial, usersSnap] = await Promise.all([
+          fetchPage(true),
+          getDocs(collection(db, "users")),
+        ]);
         setTickets(initial);
+
+        const fetchedUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setAllUsers(fetchedUsers);
+        setUsers(fetchedUsers);
       } catch (e) {
         console.error("Admin page load error:", e.message);
+        setUserError(`Failed to load users: ${e.message}`);
       } finally {
         setLoading(false);
       }
@@ -224,26 +234,21 @@ export default function AdminPage() {
     }
   };
 
-  const searchUsers = async () => {
-    if (!userSearch.trim()) return;
-    setUserLoading(true);
-    try {
-      const snap = await getDocs(collection(db, "users"));
-      const term = userSearch.toLowerCase();
-      const results = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter(
-          (u) =>
-            u.name?.toLowerCase().includes(term) ||
-            u.email?.toLowerCase().includes(term)
-        );
-      setUsers(results);
-    } catch (e) {
-      console.error("User search error:", e.message);
-    } finally {
-      setUserLoading(false);
+  useEffect(() => {
+    const term = userSearch.toLowerCase().trim();
+    if (!term) {
+      setUsers(allUsers);
+      return;
     }
-  };
+    setUsers(
+      allUsers.filter(
+        (u) =>
+          u.name?.toLowerCase().includes(term) ||
+          u.email?.toLowerCase().includes(term) ||
+          u.department?.toLowerCase().includes(term)
+      )
+    );
+  }, [userSearch, allUsers]);
 
   const changeRole = async (userId, newRole) => {
     try {
@@ -454,25 +459,18 @@ export default function AdminPage() {
             User Management
           </h2>
           <p className="text-sm text-gray-400 mb-4">
-            Search by name or email, then change their role.
+            Filter by name, email or department. Role changes save instantly.
           </p>
-          <div className="flex gap-3 mb-4">
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchUsers()}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-red-300"
-            />
-            <button
-              onClick={searchUsers}
-              disabled={userLoading}
-              className="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 cursor-pointer"
-            >
-              {userLoading ? "Searching..." : "Search"}
-            </button>
-          </div>
+          {userError && (
+            <p className="text-sm text-red-500 mb-3">{userError}</p>
+          )}
+          <input
+            type="text"
+            placeholder="Filter by name, email or department..."
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+          />
 
           {users.length > 0 && (
             <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
@@ -527,8 +525,10 @@ export default function AdminPage() {
             </div>
           )}
 
-          {users.length === 0 && userSearch && !userLoading && (
-            <p className="text-gray-400 text-sm">No users found.</p>
+          {users.length === 0 && !userError && (
+            <p className="text-gray-400 text-sm">
+              {userSearch ? "No users match your filter." : "No users found."}
+            </p>
           )}
         </div>
       </div>

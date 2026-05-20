@@ -3,17 +3,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 6, 7);
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Any signed-in user can read their own doc.
+      // Admins can read any user doc (needed for user-management search).
+      allow read: if isSignedIn() &&
+                     (request.auth.uid == userId || userRole() == 'admin');
+
+      // Users create their own doc on sign-up.
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      // Users can update their own profile; admins can update any (role changes).
+      allow update: if isSignedIn() &&
+                       (request.auth.uid == userId || userRole() == 'admin');
+
+      allow delete: if isSignedIn() && userRole() == 'admin';
+    }
+
+    // ── Tickets ──────────────────────────────────────────────────────────────
+    match /tickets/{department}/all/{ticketId} {
+      // All signed-in users can read tickets
+      // (app logic scopes what each role actually sees).
+      allow read: if isSignedIn();
+
+      // Any signed-in user can raise a ticket.
+      allow create: if isSignedIn();
+
+      // Handlers and admins can update any ticket in the system.
+      // Issuers can update only their own (e.g. re-open).
+      allow update: if isSignedIn() && (
+        userRole() == 'admin'   ||
+        userRole() == 'handler' ||
+        resource.data.issuerId == request.auth.uid
+      );
+
+      // Only handlers and admins can delete tickets.
+      allow delete: if isSignedIn() && (
+        userRole() == 'admin' ||
+        userRole() == 'handler'
+      );
+    }
+
+    // ── Config (email routes etc.) ────────────────────────────────────────────
+    match /config/{document=**} {
+      allow read, write: if isSignedIn() && userRole() == 'admin';
     }
   }
 }

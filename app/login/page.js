@@ -32,9 +32,11 @@ export default function LoginPage() {
       if(userinfoSnap.exists()){
         const userData = userinfoSnap.data();
         const userRole = userData.role;
-        if(userRole==='handler'){
+        if (userRole === 'admin') {
+          router.push('/role/admin');
+        } else if (userRole === 'handler') {
           router.push('/role/handler');
-        } else{
+        } else {
           router.push('/role/issuer');
         }
       }
